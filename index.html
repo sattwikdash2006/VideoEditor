@@ -1,2395 +1,299 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <meta name="description" content="AUTOEDIT AI — 100% Client-Side Local & AI Autonomous Video Editor" />
-  <title>AUTOEDIT AI — Local & AI Autonomous Video Engine</title>
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <!-- Lucide Icons via CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Pure JS MP4 Muxer for WebCodecs -->
-  <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"></script>
-
-  <style>
-    :root {
-      --bg-base: #07090e;
-      --bg-surface: #0e121b;
-      --bg-surface-elevated: #151a27;
-      --bg-surface-active: #1d2334;
-      --border-subtle: rgba(255, 255, 255, 0.07);
-      --border-medium: rgba(255, 255, 255, 0.14);
-      --border-glow: rgba(99, 102, 241, 0.35);
-      
-      --accent-indigo: #6366f1;
-      --accent-violet: #8b5cf6;
-      --accent-cyan: #06b6d4;
-      --accent-emerald: #10b981;
-      --accent-rose: #f43f5e;
-      --accent-amber: #f59e0b;
-
-      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
-      --glass-panel: rgba(14, 18, 27, 0.85);
-      --glass-blur: blur(14px);
-
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-
-      --sidebar-width: 270px;
-      --header-height: 64px;
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 18px;
-      --radius-xl: 24px;
-      --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      background-color: var(--bg-base);
-      color: var(--text-main);
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-      display: flex;
-    }
-
-    code, pre, .font-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    ::-webkit-scrollbar {
-      width: 7px;
-      height: 7px;
-    }
-    ::-webkit-scrollbar-track {
-      background: var(--bg-base);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    #app-container {
-      display: flex;
-      width: 100vw;
-      min-height: 100vh;
-      position: relative;
-    }
-
-    #sidebar-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(3, 5, 8, 0.75);
-      backdrop-filter: blur(4px);
-      z-index: 38;
-      display: none;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-    #sidebar-backdrop.active {
-      display: block;
-      opacity: 1;
-    }
-
-    aside.sidebar {
-      width: var(--sidebar-width);
-      background-color: var(--bg-surface);
-      border-right: 1px solid var(--border-subtle);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      height: 100vh;
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      transition: var(--transition-smooth);
-    }
-
-    .brand-header {
-      padding: 20px 24px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .brand-logo-badge {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: var(--accent-gradient);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-weight: 800;
-      font-size: 18px;
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
-    }
-
-    .brand-title-wrap h1 {
-      font-size: 15px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .brand-title-wrap span.phase-tag {
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgba(16, 185, 129, 0.15);
-      color: var(--accent-emerald);
-      font-weight: 700;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-
-    .nav-group {
-      padding: 18px 14px;
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .nav-group-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--text-dim);
-      padding: 8px 12px 6px;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-size: 13.5px;
-      font-weight: 500;
-      text-decoration: none;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: var(--transition-smooth);
-      min-height: 44px;
-      user-select: none;
-    }
-
-    .nav-item:hover {
-      color: var(--text-main);
-      background-color: var(--bg-surface-elevated);
-    }
-
-    .nav-item.active {
-      color: #ffffff;
-      background: linear-gradient(90deg, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.09) 100%);
-      border: 1px solid var(--border-glow);
-      font-weight: 600;
-    }
-
-    .nav-item i {
-      width: 18px;
-      height: 18px;
-    }
-
-    .nav-step-badge {
-      margin-left: auto;
-      font-size: 10px;
-      font-family: 'JetBrains Mono', monospace;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-dim);
-    }
-    .nav-item.active .nav-step-badge {
-      background: rgba(99, 102, 241, 0.25);
-      color: #a5b4fc;
-    }
-
-    .sidebar-footer {
-      padding: 16px;
-      border-top: 1px solid var(--border-subtle);
-      background: rgba(7, 9, 14, 0.4);
-    }
-
-    .engine-status-pill {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px;
-      background: var(--bg-surface-elevated);
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-subtle);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-emerald);
-      box-shadow: 0 0 10px var(--accent-emerald);
-      animation: pulse 2s infinite ease-in-out;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.9); }
-    }
-
-    main.main-viewport {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      min-height: 100vh;
-      overflow-y: visible;
-    }
-
-    header.top-header {
-      height: var(--header-height);
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      background: var(--glass-panel);
-      backdrop-filter: var(--glass-blur);
-      position: sticky;
-      top: 0;
-      z-index: 30;
-    }
-
-    .header-breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13.5px;
-      color: var(--text-dim);
-    }
-
-    .header-breadcrumb .current {
-      color: var(--text-main);
-      font-weight: 600;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .scroll-section {
-      padding: 42px 36px;
-      border-bottom: 1px solid var(--border-subtle);
-      position: relative;
-    }
-
-    .section-stage-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--accent-indigo);
-      background: rgba(99, 102, 241, 0.12);
-      border: 1px solid rgba(99, 102, 241, 0.25);
-      padding: 4px 10px;
-      border-radius: 999px;
-      margin-bottom: 10px;
-    }
-
-    .section-header-wrap {
-      margin-bottom: 26px;
-    }
-
-    .section-header-wrap h2 {
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: -0.4px;
-    }
-
-    .section-header-wrap p {
-      color: var(--text-muted);
-      font-size: 14px;
-      margin-top: 4px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: var(--transition-smooth);
-      outline: none;
-      user-select: none;
-      white-space: nowrap;
-      min-height: 38px;
-    }
-
-    .btn:focus-visible {
-      box-shadow: 0 0 0 2px var(--accent-indigo);
-    }
-
-    .btn i {
-      width: 16px;
-      height: 16px;
-    }
-
-    .btn-primary {
-      background: var(--accent-gradient);
-      color: #fff;
-      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
-    }
-    .btn-primary:hover {
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-      transform: translateY(-1px);
-    }
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-secondary {
-      background: var(--bg-surface-elevated);
-      color: var(--text-main);
-      border: 1px solid var(--border-medium);
-    }
-    .btn-secondary:hover {
-      background: var(--bg-surface-active);
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-
-    .btn-danger {
-      background: rgba(244, 63, 94, 0.1);
-      color: var(--accent-rose);
-      border: 1px solid rgba(244, 63, 94, 0.3);
-    }
-    .btn-danger:hover {
-      background: var(--accent-rose);
-      color: #fff;
-    }
-
-    .btn-success {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--accent-emerald);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .btn-success:hover {
-      background: var(--accent-emerald);
-      color: #fff;
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--text-muted);
-    }
-    .btn-ghost:hover {
-      color: var(--text-main);
-      background: var(--bg-surface-elevated);
-    }
-
-    .btn-sm {
-      padding: 5px 12px;
-      font-size: 12px;
-      min-height: 32px;
-    }
-
-    .card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 24px;
-      position: relative;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .card-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .card-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-    }
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-    .grid-4 {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-    }
-
-    .dropzone {
-      border: 2px dashed rgba(99, 102, 241, 0.4);
-      background: rgba(99, 102, 241, 0.03);
-      border-radius: var(--radius-lg);
-      padding: 38px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: var(--transition-smooth);
-      position: relative;
-    }
-
-    .dropzone:hover, .dropzone.dragover {
-      border-color: var(--accent-indigo);
-      background: rgba(99, 102, 241, 0.08);
-      transform: scale(0.998);
-    }
-
-    .dropzone-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: var(--bg-surface-elevated);
-      color: var(--accent-indigo);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-      border: 1px solid var(--border-subtle);
-    }
-
-    .video-viewport {
-      background: #000;
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      border: 1px solid var(--border-subtle);
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 320px;
-    }
-
-    .video-viewport video, .video-viewport canvas {
-      width: 100%;
-      height: 100%;
-      max-height: 440px;
-      object-fit: contain;
-    }
-
-    .timeline-container {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .timeline-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border-subtle);
-      background: var(--bg-surface-elevated);
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .timeline-tracks {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      background: #090c12;
-      position: relative;
-      cursor: pointer;
-      overflow-x: auto;
-      touch-action: pan-x;
-    }
-
-    .timeline-playhead-line {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 102px;
-      width: 2px;
-      background: var(--accent-rose);
-      z-index: 10;
-      pointer-events: none;
-      box-shadow: 0 0 8px var(--accent-rose);
-      transition: left 0.05s linear;
-    }
-
-    .playhead-head {
-      position: absolute;
-      top: 0;
-      left: -5px;
-      width: 12px;
-      height: 12px;
-      background: var(--accent-rose);
-      transform: rotate(45deg);
-      border-radius: 2px;
-    }
-
-    .timeline-track {
-      height: 52px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      padding: 0 12px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .track-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-dim);
-      width: 90px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      z-index: 2;
-      flex-shrink: 0;
-    }
-
-    .track-body {
-      flex: 1;
-      height: 36px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 4px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .clip-cut-segment {
-      position: absolute;
-      top: 2px;
-      bottom: 2px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 8px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #fff;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      border: 1px solid rgba(255,255,255,0.25);
-      cursor: pointer;
-      user-select: none;
-      transition: var(--transition-smooth);
-    }
-    .clip-cut-segment:hover {
-      filter: brightness(1.15);
-      border-color: #fff;
-    }
-    .clip-cut-segment.selected {
-      border: 2px solid var(--accent-cyan);
-      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .form-group label {
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-
-    .input-field, .textarea-field, .select-field {
-      width: 100%;
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-medium);
-      color: var(--text-main);
-      padding: 10px 14px;
-      border-radius: var(--radius-sm);
-      font-size: 13.5px;
-      outline: none;
-      transition: var(--transition-smooth);
-    }
-
-    .input-field:focus, .textarea-field:focus, .select-field:focus {
-      border-color: var(--accent-indigo);
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
-    }
-
-    .textarea-field {
-      resize: vertical;
-      min-height: 90px;
-    }
-
-    .agent-pipeline-box {
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      margin-top: 16px;
-    }
-
-    .progress-bar-wrap {
-      width: 100%;
-      height: 6px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 999px;
-      overflow: hidden;
-      margin: 12px 0;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: var(--accent-gradient);
-      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .activity-log-stream {
-      background: #05070b;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      padding: 12px;
-      font-size: 11.5px;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--text-muted);
-      height: 140px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .activity-log-line {
-      display: flex;
-      gap: 8px;
-    }
-    .activity-log-time {
-      color: var(--text-dim);
-      flex-shrink: 0;
-    }
-    .activity-log-msg {
-      color: #cbd5e1;
-      word-break: break-word;
-    }
-    .activity-log-msg.highlight {
-      color: var(--accent-cyan);
-      font-weight: 600;
-    }
-    .activity-log-msg.success {
-      color: var(--accent-emerald);
-      font-weight: 600;
-    }
-    .activity-log-msg.error {
-      color: var(--accent-rose);
-      font-weight: 600;
-    }
-
-    .mode-tab-btn {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 13px;
-      border: 1px solid var(--border-medium);
-      background: var(--bg-surface-elevated);
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: var(--transition-smooth);
-    }
-    .mode-tab-btn.active {
-      background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%);
-      border-color: var(--accent-emerald);
-      color: #fff;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(3, 5, 8, 0.85);
-      backdrop-filter: var(--glass-blur);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-    }
-    .modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    .modal-box {
-      width: 100%;
-      max-width: 580px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-medium);
-      border-radius: var(--radius-lg);
-      padding: 28px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .modal-scroll-body {
-      overflow-y: auto;
-      flex: 1;
-      margin: 12px 0 20px;
-    }
-
-    #toast-shelf {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 150;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
-    }
-    .toast {
-      pointer-events: auto;
-      min-width: 280px;
-      max-width: 380px;
-      padding: 12px 16px;
-      border-radius: var(--radius-sm);
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-medium);
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      font-size: 13px;
-      color: var(--text-main);
-    }
-    .toast-success { border-left: 4px solid var(--accent-emerald); }
-    .toast-error { border-left: 4px solid var(--accent-rose); }
-    .toast-info { border-left: 4px solid var(--accent-cyan); }
-    .toast-warning { border-left: 4px solid var(--accent-amber); }
-
-    .empty-state {
-      padding: 48px 20px;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-dim);
-    }
-    .empty-state i {
-      width: 44px;
-      height: 44px;
-      margin-bottom: 14px;
-      opacity: 0.5;
-    }
-
-    .mobile-menu-btn {
-      display: none;
-      background: none;
-      border: none;
-      color: var(--text-main);
-      cursor: pointer;
-      min-height: 44px;
-      min-width: 44px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    @media (max-width: 992px) {
-      aside.sidebar { position: fixed; left: -100%; box-shadow: 20px 0 40px rgba(0,0,0,0.6); }
-      aside.sidebar.mobile-open { left: 0; }
-      .mobile-menu-btn { display: inline-flex; }
-      .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
-      .scroll-section { padding: 30px 20px; }
-    }
-    @media (max-width: 640px) {
-      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
-      header.top-header { padding: 0 16px; }
-      .scroll-section { padding: 24px 14px; }
-    }
-  </style>
-</head>
-<body>
-
-  <div id="app-container">
-    <div id="sidebar-backdrop"></div>
-
-    <aside class="sidebar" id="app-sidebar">
-      <div class="brand-header">
-        <div class="brand-logo-badge">A</div>
-        <div class="brand-title-wrap">
-          <h1>AUTOEDIT <span class="phase-tag">LOCAL ENGINE</span></h1>
-        </div>
-      </div>
-
-      <nav class="nav-group" aria-label="Workflow Stages">
-        <div class="nav-group-title">EDITING STAGES</div>
-        <a class="nav-item active" data-target="sec-dashboard" role="button" tabindex="0">
-          <i data-lucide="layout-grid"></i>
-          <span>Dashboard</span>
-          <span class="nav-step-badge">01</span>
-        </a>
-        <a class="nav-item" data-target="sec-ai-editor" role="button" tabindex="0">
-          <i data-lucide="zap"></i>
-          <span>Auto Director</span>
-          <span class="nav-step-badge">02</span>
-        </a>
-        <a class="nav-item" data-target="sec-editor-workspace" role="button" tabindex="0">
-          <i data-lucide="film"></i>
-          <span>Workspace</span>
-          <span class="nav-step-badge">03</span>
-        </a>
-        <a class="nav-item" data-target="sec-subtitle-studio" role="button" tabindex="0">
-          <i data-lucide="captions"></i>
-          <span>Subtitle Studio</span>
-          <span class="nav-step-badge">04</span>
-        </a>
-        <a class="nav-item" data-target="sec-export-center" role="button" tabindex="0">
-          <i data-lucide="download"></i>
-          <span>Export Center</span>
-          <span class="nav-step-badge">05</span>
-        </a>
-
-        <div class="nav-group-title" style="margin-top: 14px;">CONFIGURATION</div>
-        <a class="nav-item" data-target="sec-settings" role="button" tabindex="0">
-          <i data-lucide="settings-2"></i>
-          <span>Settings</span>
-          <span class="nav-step-badge">06</span>
-        </a>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="engine-status-pill">
-          <div class="status-dot"></div>
-          <div>
-            <div style="font-size: 12px; font-weight: 700;" id="sidebar-engine-badge">Engine Ready</div>
-            <div style="font-size: 10px; color: var(--accent-emerald);" id="sidebar-autosave-badge">100% Free & Offline</div>
-          </div>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main-viewport" id="main-scroller">
-      
-      <header class="top-header">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <button class="mobile-menu-btn" id="sidebar-toggle" aria-label="Open Navigation">
-            <i data-lucide="menu"></i>
-          </button>
-          <div class="header-breadcrumb">
-            <span>AUTOEDIT</span>
-            <span>/</span>
-            <span class="current" id="header-breadcrumb-title">Dashboard Overview</span>
-          </div>
-        </div>
-
-        <div class="header-actions">
-          <div id="key-badge-status" style="display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 4px 10px; border-radius: 999px; background: rgba(16, 185, 129, 0.12); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3);">
-            <i data-lucide="zap" style="width: 12px; height: 12px;"></i>
-            <span>Local Engine Active (No Key Needed)</span>
-          </div>
-          <button class="btn btn-primary btn-sm" id="btn-top-new-project">
-            <i data-lucide="plus"></i>
-            <span>New Project</span>
-          </button>
-        </div>
-      </header>
-
-      <!-- STAGE 1: DASHBOARD -->
-      <section id="sec-dashboard" class="scroll-section">
-        <div class="section-stage-tag"><i data-lucide="layers" style="width:12px; height:12px;"></i> Stage 01</div>
-        <div class="section-header-wrap">
-          <h2>Dashboard Overview</h2>
-          <p>Client-side autonomous video editor with Zero-API-Key Waveform Jumpcut and optional Gemini AI.</p>
-        </div>
-
-        <div class="grid-4" style="margin-bottom: 24px;">
-          <div class="card">
-            <div style="font-size: 12px; color: var(--text-dim); font-weight: 600;">ACTIVE PROJECTS</div>
-            <div style="font-size: 26px; font-weight: 800; margin-top: 8px;" id="stat-project-count">0</div>
-          </div>
-          <div class="card">
-            <div style="font-size: 12px; color: var(--text-dim); font-weight: 600;">AUTONOMOUS ENGINE</div>
-            <div style="font-size: 15px; font-weight: 700; margin-top: 14px; color: var(--accent-emerald);">⚡ 100% Local / Offline</div>
-          </div>
-          <div class="card">
-            <div style="font-size: 12px; color: var(--text-dim); font-weight: 600;">API KEY REQUIREMENT</div>
-            <div style="font-size: 15px; font-weight: 700; margin-top: 14px; color: var(--accent-cyan);">Not Required (Free)</div>
-          </div>
-          <div class="card">
-            <div style="font-size: 12px; color: var(--text-dim); font-weight: 600;">LOCAL STORAGE</div>
-            <div style="font-size: 16px; font-weight: 700; margin-top: 14px;" id="stat-storage-size">0.0 MB</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title"><i data-lucide="folder-kanban"></i> Local Projects</div>
-              <div class="card-desc">Videos are processed directly in your browser. No files are uploaded to any server.</div>
-            </div>
-            <button class="btn btn-secondary btn-sm" id="btn-refresh-projects">
-              <i data-lucide="rotate-cw"></i> Refresh
-            </button>
-          </div>
-
-          <div id="project-list-container" class="grid-3"></div>
-
-          <div id="projects-empty-state" class="empty-state">
-            <i data-lucide="film"></i>
-            <h4 style="font-size: 16px; color: var(--text-muted); font-weight: 600;">No projects found</h4>
-            <p style="font-size: 13px; max-width: 340px; margin: 6px 0 16px;">Create a new project or upload your raw footage to begin editing.</p>
-            <button class="btn btn-primary btn-sm" id="btn-empty-upload-trigger">
-              <i data-lucide="upload"></i> Upload Raw Video
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- STAGE 2: AUTO DIRECTOR -->
-      <section id="sec-ai-editor" class="scroll-section">
-        <div class="section-stage-tag"><i data-lucide="zap" style="width:12px; height:12px;"></i> Stage 02</div>
-        <div class="section-header-wrap" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h2>Autonomous Director Engine</h2>
-            <p>Automatically detect pauses, dead air, peaks, and scene changes without requiring any API key.</p>
-          </div>
-          <div style="display: flex; gap: 10px;">
-            <button class="btn btn-secondary btn-sm" id="btn-inspect-edl-modal" style="display: none;">
-              <i data-lucide="code-2"></i> Inspect Raw EDL
-            </button>
-          </div>
-        </div>
-
-        <div class="grid-2">
-          <!-- Left Column -->
-          <div>
-            <div class="card" style="margin-bottom: 20px;">
-              <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="file-video"></i> Raw Source Ingest</div>
-              
-              <div class="dropzone" id="video-dropzone" tabindex="0" role="button" aria-label="Upload raw video file">
-                <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/quicktime" style="display:none;" />
-                <div class="dropzone-icon">
-                  <i data-lucide="upload-cloud"></i>
-                </div>
-                <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Click or drag raw video here</h4>
-                <p style="font-size: 12px; color: var(--text-dim);">MP4, WebM, MOV. Processed entirely inside your device.</p>
-              </div>
-
-              <div id="video-metadata-panel" style="display: none; margin-top: 16px; background: var(--bg-surface-elevated); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-                <div style="font-size: 12px; font-weight: 700; color: var(--accent-indigo); margin-bottom: 8px;">DETECTED SOURCE METADATA</div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 12px;">
-                  <div><span style="color: var(--text-dim);">File Name:</span> <span id="meta-filename" style="font-weight:600;">-</span></div>
-                  <div><span style="color: var(--text-dim);">File Size:</span> <span id="meta-filesize" style="font-weight:600;">-</span></div>
-                  <div><span style="color: var(--text-dim);">Resolution:</span> <span id="meta-resolution" style="font-weight:600;">-</span></div>
-                  <div><span style="color: var(--text-dim);">Duration:</span> <span id="meta-duration" style="font-weight:600;">-</span></div>
-                  <div><span style="color: var(--text-dim);">Aspect Ratio:</span> <span id="meta-ratio" style="font-weight:600;">-</span></div>
-                  <div><span style="color: var(--text-dim);">MIME Type:</span> <span id="meta-mime" style="font-weight:600;">-</span></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-title" style="margin-bottom: 12px;"><i data-lucide="eye"></i> Source Preview</div>
-              <div class="video-viewport" id="ai-editor-player-box" style="min-height: 220px;">
-                <video id="ai-editor-video" controls style="max-height: 260px; display: none;"></video>
-                <div id="ai-editor-placeholder" style="color: var(--text-dim); font-size: 13px;">No video loaded</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Column: Auto Director Modes -->
-          <div>
-            <div class="card">
-              <!-- Engine Selector Tabs -->
-              <div style="display: flex; gap: 8px; margin-bottom: 18px;">
-                <button type="button" class="mode-tab-btn active" id="tab-mode-local">
-                  <i data-lucide="zap"></i>
-                  <span>Local Auto-Director (No Key)</span>
-                </button>
-                <button type="button" class="mode-tab-btn" id="tab-mode-cloud">
-                  <i data-lucide="sparkles"></i>
-                  <span>Gemini Cloud (Optional)</span>
-                </button>
-              </div>
-
-              <!-- LOCAL AUTO-DIRECTOR PANEL (NO API KEY) -->
-              <div id="panel-local-director">
-                <div style="padding: 10px 14px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); margin-bottom: 16px; font-size: 12px; color: var(--accent-emerald); display: flex; align-items: center; gap: 8px;">
-                  <i data-lucide="shield-check" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
-                  <span><strong>100% Free & Offline:</strong> Audio energy & silence detection runs locally in your browser.</span>
-                </div>
-
-                <div class="form-group">
-                  <label for="local-preset-select">Automatic Editing Preset</label>
-                  <select class="select-field" id="local-preset-select">
-                    <option value="jumpcut">✂️ Smart Jumpcut: Remove All Silent Pauses & Stutters</option>
-                    <option value="viral-shorts">🔥 Viral Shorts Maker: Curate Top High-Energy 45s</option>
-                    <option value="punch-in">⚡ Kinetic Vlog: Cut Silence + Auto Punch-in Zoom on Speech</option>
-                    <option value="scene-cut">🎬 Visual Scene Detector: Cut on Camera Angle Changes</option>
-                  </select>
-                </div>
-
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="local-silence-thresh">Silence Sensitivity (dB)</label>
-                    <select class="select-field" id="local-silence-thresh">
-                      <option value="-35">Normal Room (-35 dB)</option>
-                      <option value="-42">Clean Studio Mic (-42 dB)</option>
-                      <option value="-28">Noisy Background (-28 dB)</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="local-min-pause">Minimum Pause to Cut</label>
-                    <select class="select-field" id="local-min-pause">
-                      <option value="0.35">Fast Paced (0.35s)</option>
-                      <option value="0.5">Natural Rhythm (0.50s)</option>
-                      <option value="0.75">Relaxed (0.75s)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="local-target-format">Target Distribution Format</label>
-                  <select class="select-field" id="local-target-format">
-                    <option value="youtube-shorts">YouTube Shorts (9:16 Vertical Cut)</option>
-                    <option value="instagram-reels">Instagram Reels (9:16 High-Pace)</option>
-                    <option value="youtube-main">YouTube 16:9 Landscape (Retention-Optimized)</option>
-                    <option value="general-mp4">General Clean Highlight Reel</option>
-                  </select>
-                </div>
-
-                <button class="btn btn-primary" id="btn-run-local-director" style="width: 100%; height: 46px; font-size: 14px; margin-top: 10px;">
-                  <i data-lucide="zap"></i> Run Instant Auto-Edit (No Key Required)
-                </button>
-              </div>
-
-              <!-- OPTIONAL GEMINI CLOUD PANEL -->
-              <div id="panel-cloud-director" style="display: none;">
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="ai-model-select">Gemini Model</label>
-                    <select class="select-field" id="ai-model-select">
-                      <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
-                      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="ai-sampling-rate">Frame Sampling Density</label>
-                    <select class="select-field" id="ai-sampling-rate">
-                      <option value="8">8 Sampled Frames</option>
-                      <option value="12">12 Sampled Frames</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="ai-instructions-input">Natural Language Directives</label>
-                  <textarea class="textarea-field" id="ai-instructions-input" placeholder="e.g. Cut dead air, select the funniest moment, and add kinetic captions."></textarea>
-                </div>
-
-                <button class="btn btn-secondary" id="btn-run-cloud-director" style="width: 100%; height: 44px;">
-                  <i data-lucide="sparkles"></i> Run Gemini Cloud Analysis
-                </button>
-              </div>
-
-              <!-- Analysis Progress & Activity Stream -->
-              <div class="agent-pipeline-box" id="ai-pipeline-box" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <div style="font-size: 12px; font-weight: 700; color: var(--text-main);" id="pipeline-status-text">Analyzing audio waveform...</div>
-                  <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent-emerald);" id="pipeline-status-pct">0%</div>
-                </div>
-
-                <div class="progress-bar-wrap">
-                  <div class="progress-bar-fill" id="pipeline-progress-bar"></div>
-                </div>
-
-                <div class="activity-log-stream" id="activity-log-stream">
-                  <div class="activity-log-line">
-                    <span class="activity-log-time">[00:00]</span>
-                    <span class="activity-log-msg">Director ready.</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Plan Review Card -->
-              <div class="agent-pipeline-box" id="plan-review-card" style="display: none; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.05); margin-top: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <div style="font-size: 14px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="check-circle-2" style="color: var(--accent-emerald); width: 18px; height: 18px;"></i>
-                    <span>Automatic Editing Plan Generated!</span>
-                  </div>
-                  <span class="font-mono" style="font-size: 11px; color: var(--accent-cyan);" id="plan-summary-metrics">-</span>
-                </div>
-
-                <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;" id="plan-narrative-summary">
-                  All dead air and stutters removed with auto-generated synchronized speech captions.
-                </div>
-
-                <div id="plan-highlights-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;"></div>
-
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                  <button class="btn btn-success" id="btn-approve-plan" style="flex: 1;">
-                    <i data-lucide="check"></i> Approve & Scroll to Workspace
-                  </button>
-                  <button class="btn btn-danger btn-sm" id="btn-reject-plan">
-                    <i data-lucide="trash-2"></i> Reject
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- STAGE 3: EDITOR WORKSPACE -->
-      <section id="sec-editor-workspace" class="scroll-section">
-        <div class="section-stage-tag"><i data-lucide="film" style="width:12px; height:12px;"></i> Stage 03</div>
-        <div class="section-header-wrap" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div>
-            <h2 id="workspace-project-title">Workspace: Untitled Project</h2>
-            <p id="workspace-project-details">Ready for interactive inspection and trimming</p>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-secondary btn-sm" id="btn-ws-save-project">
-              <i data-lucide="save"></i> Save State
-            </button>
-            <button class="btn btn-primary btn-sm" id="btn-ws-to-export">
-              <i data-lucide="arrow-down"></i> Scroll to Export
-            </button>
-          </div>
-        </div>
-
-        <div class="grid-3" style="grid-template-columns: 2fr 1fr; margin-bottom: 20px;">
-          <div class="card" style="padding: 16px;">
-            <div class="video-viewport" style="background:#000; min-height: 380px;">
-              <canvas id="workspace-canvas" style="display: block; max-height: 440px;"></canvas>
-              <video id="workspace-video" playsinline style="display: none;"></video>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12px; color: var(--text-muted);">
-              <div>Timecode: <span id="ws-timecode" class="font-mono" style="color: var(--text-main); font-weight:600;">00:00:00.00</span></div>
-              <div style="display: flex; gap: 8px;">
-                <span class="font-mono" id="ws-resolution-tag">-- x --</span>
-                <span class="font-mono" id="ws-aspect-tag">--:--</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" style="display: flex; flex-direction: column;">
-            <div class="card-title" style="margin-bottom: 12px;"><i data-lucide="sliders"></i> Segment & Audio Inspector</div>
-            
-            <div id="segment-inspector-panel" style="padding: 12px; background: var(--bg-surface-elevated); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 12px;">
-              <div style="font-size: 11px; font-weight: 700; color: var(--accent-indigo); margin-bottom: 6px;" id="ins-segment-title">No Segment Selected</div>
-              <div class="grid-2" style="gap: 8px; margin-bottom: 8px;">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="ins-segment-start" style="font-size: 11px;">Start (sec)</label>
-                  <input type="number" step="0.1" class="input-field btn-sm font-mono" id="ins-segment-start" value="0.0" />
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="ins-segment-end" style="font-size: 11px;">End (sec)</label>
-                  <input type="number" step="0.1" class="input-field btn-sm font-mono" id="ins-segment-end" value="0.0" />
-                </div>
-              </div>
-              <div class="grid-2" style="gap: 8px; margin-bottom: 8px;">
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="ins-segment-op" style="font-size: 11px;">Operation</label>
-                  <select class="select-field btn-sm" id="ins-segment-op">
-                    <option value="keep">Keep</option>
-                    <option value="highlight">Highlight</option>
-                    <option value="zoom">Punch In Zoom</option>
-                  </select>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                  <label for="ins-segment-transition" style="font-size: 11px;">Transition</label>
-                  <select class="select-field btn-sm" id="ins-segment-transition">
-                    <option value="cut">Direct Cut</option>
-                    <option value="fade">Fade In/Out</option>
-                  </select>
-                </div>
-              </div>
-              <div style="display: flex; gap: 6px; margin-top: 10px;">
-                <button class="btn btn-secondary btn-sm" style="flex:1;" id="btn-ins-apply-trim"><i data-lucide="check"></i> Apply</button>
-                <button class="btn btn-danger btn-sm" id="btn-ins-delete-segment" title="Delete segment"><i data-lucide="trash"></i></button>
-              </div>
-            </div>
-
-            <div style="flex: 1; overflow-y: auto; max-height: 180px;">
-              <div id="edl-entries" style="display: flex; flex-direction: column; gap: 6px;"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="timeline-container">
-          <div class="timeline-header">
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-              <button class="btn btn-secondary btn-sm" id="btn-timeline-play-toggle">
-                <i data-lucide="play" id="icon-timeline-play"></i>
-                <span id="text-timeline-play">Play</span>
-              </button>
-              <button class="btn btn-secondary btn-sm" id="btn-timeline-split" title="Split active segment at playhead">
-                <i data-lucide="scissors"></i> Split at Playhead
-              </button>
-              <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); font-weight: 600;" id="timeline-edl-badge">Interactive Timeline</span>
-            </div>
-          </div>
-
-          <div class="timeline-tracks" id="timeline-interactive-tracks">
-            <div class="timeline-playhead-line" id="timeline-playhead">
-              <div class="playhead-head"></div>
-            </div>
-
-            <div class="timeline-track">
-              <div class="track-label"><i data-lucide="video" style="width:13px; height:13px;"></i> Video 1</div>
-              <div class="track-body" id="timeline-video-track-body"></div>
-            </div>
-
-            <div class="timeline-track">
-              <div class="track-label"><i data-lucide="subtitles" style="width:13px; height:13px;"></i> Captions</div>
-              <div class="track-body" id="timeline-captions-track-body"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- STAGE 4: SUBTITLE STUDIO -->
-      <section id="sec-subtitle-studio" class="scroll-section">
-        <div class="section-stage-tag"><i data-lucide="captions" style="width:12px; height:12px;"></i> Stage 04</div>
-        <div class="section-header-wrap">
-          <h2>Subtitle & Caption Studio</h2>
-          <p>Review speech-synchronized kinetic captions, typography, and live preview text overlays.</p>
-        </div>
-
-        <div class="grid-2">
-          <div>
-            <div class="card" style="margin-bottom: 20px;">
-              <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="palette"></i> Typography & Styling Parameters</div>
-              
-              <div class="grid-2">
-                <div class="form-group">
-                  <label for="sub-font-family">Font Family</label>
-                  <select class="select-field" id="sub-font-family">
-                    <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
-                    <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
-                    <option value="Impact, sans-serif">Impact Bold Style</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label for="sub-font-size">Font Size (px)</label>
-                  <input type="number" class="input-field" id="sub-font-size" value="34" min="14" max="80" />
-                </div>
-              </div>
-
-              <div class="grid-2">
-                <div class="form-group">
-                  <label for="sub-text-color">Text Color</label>
-                  <input type="color" class="input-field" id="sub-text-color" value="#FFFFFF" style="height: 42px; padding: 4px;" />
-                </div>
-
-                <div class="form-group">
-                  <label for="sub-accent-color">Highlight Accent Color</label>
-                  <input type="color" class="input-field" id="sub-accent-color" value="#FACC15" style="height: 42px; padding: 4px;" />
-                </div>
-              </div>
-
-              <button class="btn btn-secondary" style="width: 100%; margin-top: 10px;" id="btn-save-sub-styles">
-                <i data-lucide="check"></i> Apply Subtitle Styling
-              </button>
-            </div>
-
-            <div class="card">
-              <div class="card-header" style="margin-bottom: 12px;">
-                <div class="card-title"><i data-lucide="captions"></i> Timed Caption Segments</div>
-                <button class="btn btn-secondary btn-sm" id="btn-add-caption-item"><i data-lucide="plus"></i> Add Line</button>
-              </div>
-              <div id="sub-generated-list" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-size: 12px; color: var(--text-dim); text-align: center; padding: 20px 0;">
-                  No captions loaded. Generate with Auto Director or add manually.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card" style="display: flex; flex-direction: column;">
-            <div class="card-title" style="margin-bottom: 12px;"><i data-lucide="monitor"></i> Subtitle Styling Preview</div>
-            <div style="flex: 1; background: #000; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; position: relative; min-height: 320px; overflow: hidden;" id="subtitle-preview-container">
-              <div id="subtitle-sample-text" style="padding: 8px 16px; border-radius: 6px; text-align: center; font-weight: 800; text-transform: uppercase; z-index: 2; position: absolute; bottom: 24px;">
-                AI WILL <span id="subtitle-sample-highlight" style="color: #FACC15;">REVOLUTIONIZE</span> YOUR WORKFLOW
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- STAGE 5: EXPORT CENTER -->
-      <section id="sec-export-center" class="scroll-section">
-        <div class="section-stage-tag"><i data-lucide="download" style="width:12px; height:12px;"></i> Stage 05</div>
-        <div class="section-header-wrap">
-          <h2>Adaptive Export Center</h2>
-          <p>Render your automatically trimmed cuts directly into a downloadable MP4 or WebM video file.</p>
-        </div>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="sliders"></i> Encoding & Render Settings</div>
-
-            <div class="grid-2">
-              <div class="form-group">
-                <label for="export-format">Container Format</label>
-                <select class="select-field" id="export-format">
-                  <option value="mp4">MP4 (H.264 / AAC)</option>
-                  <option value="webm">WebM (VP9 / Opus)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="export-resolution">Resolution</label>
-                <select class="select-field" id="export-resolution">
-                  <option value="1080p">1080p Full HD</option>
-                  <option value="720p">720p HD (Fastest)</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="grid-2">
-              <div class="form-group">
-                <label for="export-aspect">Aspect Ratio</label>
-                <select class="select-field" id="export-aspect">
-                  <option value="source">Match Source Video</option>
-                  <option value="9:16">9:16 (Vertical Shorts / Reels)</option>
-                  <option value="16:9">16:9 (Landscape YouTube)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="export-subtitles-toggle">Subtitles</label>
-                <select class="select-field" id="export-subtitles-toggle">
-                  <option value="burn-in">Burn In Subtitles on Video</option>
-                  <option value="none">No Subtitles (Clean Video)</option>
-                </select>
-              </div>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 14px;">
-              <button class="btn btn-primary" id="btn-start-export" style="flex: 1; height: 46px;">
-                <i data-lucide="play-circle"></i> Render & Export Video
-              </button>
-            </div>
-
-            <div id="export-progress-panel" style="display: none; margin-top: 16px; background: var(--bg-surface-elevated); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 12px; font-weight: 700;" id="export-status-label">Rendering frames...</span>
-                <span class="font-mono" style="font-size: 12px; color: var(--accent-emerald);" id="export-status-pct">0%</span>
-              </div>
-              <div class="progress-bar-wrap">
-                <div class="progress-bar-fill" id="export-progress-bar"></div>
-              </div>
-            </div>
-
-            <div id="export-success-box" style="display: none; margin-top: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); padding: 16px;">
-              <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--accent-emerald); margin-bottom: 6px;">
-                <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
-                <span>Video Render Complete!</span>
-              </div>
-              <a class="btn btn-success" id="btn-download-video" download="autoedit_export.mp4" style="width: 100%; text-decoration: none; margin-top: 10px;">
-                <i data-lucide="download"></i> Download Exported Video
-              </a>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="cpu"></i> Zero-API Architecture Status</div>
-            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-              <p><strong>⚡ Offline Web Audio API:</strong> Analyzes raw PCM audio buffers in real-time inside your browser's RAM to isolate silent dead air and spoken dialogue.</p>
-              <p><strong>🎬 Hardware Accelerated WebCodecs:</strong> Final rendering leverages your GPU via VideoEncoder and MP4 Muxer without passing any data over the internet.</p>
-              <p><strong>🔒 Total Privacy:</strong> Everything stays on this computer/phone.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- STAGE 6: SETTINGS -->
-      <section id="sec-settings" class="scroll-section">
-        <div class="section-stage-tag"><i data-lucide="settings-2" style="width:12px; height:12px;"></i> Stage 06</div>
-        <div class="section-header-wrap">
-          <h2>Settings & Optional Cloud API</h2>
-          <p>Local editing runs without an API key. You can optionally add a Gemini API key if you want cloud prompt-based scene reasoning.</p>
-        </div>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="key"></i> Optional Gemini Cloud Key</div>
-
-            <div class="form-group">
-              <label for="input-api-key">Gemini API Key (Optional)</label>
-              <input type="password" class="input-field font-mono" id="input-api-key" placeholder="Leave empty to use 100% Free Local Engine" autocomplete="off" />
-              <p style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Not needed for Automatic Jumpcuts or Highlight extraction.</p>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-              <button class="btn btn-primary" id="btn-save-key">Save Key</button>
-              <button class="btn btn-danger" id="btn-remove-key">Clear Key</button>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="trash-2"></i> Cache & Storage</div>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Clear all stored projects and offline cache from IndexedDB.</p>
-            <button class="btn btn-danger btn-sm" id="btn-purge-all-data">Purge All IndexedDB & Cache</button>
-          </div>
-        </div>
-      </section>
-
-    </main>
-  </div>
-
-  <div class="modal-overlay" id="global-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-box">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 id="modal-title" style="font-size: 18px; font-weight: 700;">Dialog</h3>
-        <button class="btn btn-ghost btn-sm" id="btn-close-modal"><i data-lucide="x"></i></button>
-      </div>
-      <div class="modal-scroll-body" id="modal-body"></div>
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px;">
-        <button class="btn btn-secondary" id="btn-modal-cancel">Cancel</button>
-        <button class="btn btn-primary" id="btn-modal-confirm">Confirm</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast-shelf" aria-live="polite"></div>
-
-  <script>
-    const DOMSanitizer = {
-      escape(str) {
-        if (!str) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-      }
-    };
-
-    const AppState = {
-      apiKey: '',
-      apiModel: 'gemini-2.5-flash',
-      activeProject: null,
-      loadedVideoFile: null,
-      loadedVideoMetadata: null,
-      selectedSegmentIndex: -1,
-      subtitleStyle: {
-        fontSize: 34,
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        textColor: '#FFFFFF',
-        accentColor: '#FACC15'
-      }
-    };
-
-    const BlobLifecycleManager = {
-      activeUrls: new Set(),
-      create(blobOrFile) {
-        if (!blobOrFile) return '';
-        const url = URL.createObjectURL(blobOrFile);
-        this.activeUrls.add(url);
-        return url;
-      },
-      revoke(url) {
-        if (url && this.activeUrls.has(url)) {
-          URL.revokeObjectURL(url);
-          this.activeUrls.delete(url);
-        }
-      },
-      revokeAll() {
-        this.activeUrls.forEach(url => URL.revokeObjectURL(url));
-        this.activeUrls.clear();
-      }
-    };
-
-    window.addEventListener('beforeunload', () => BlobLifecycleManager.revokeAll());
-
-    class DatabaseService {
-      constructor() {
-        this.dbName = 'AutoEditAI_DB_Local';
-        this.dbVersion = 1;
-        this.db = null;
-      }
-      async init() {
-        return new Promise((resolve, reject) => {
-          const req = indexedDB.open(this.dbName, this.dbVersion);
-          req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('projects')) {
-              db.createObjectStore('projects', { keyPath: 'id' });
-            }
-          };
-          req.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
-          req.onerror = (e) => reject(e.target.error);
-        });
-      }
-      async saveProject(project) {
-        return new Promise((resolve, reject) => {
-          const tx = this.db.transaction('projects', 'readwrite');
-          tx.objectStore('projects').put(project);
-          tx.oncomplete = () => resolve(project);
-          tx.onerror = (e) => reject(e.target.error);
-        });
-      }
-      async getProjects() {
-        return new Promise((resolve, reject) => {
-          const tx = this.db.transaction('projects', 'readonly');
-          const req = tx.objectStore('projects').getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror = (e) => reject(e.target.error);
-        });
-      }
-      async deleteProject(id) {
-        return new Promise((resolve, reject) => {
-          const tx = this.db.transaction('projects', 'readwrite');
-          tx.objectStore('projects').delete(id);
-          tx.oncomplete = () => resolve();
-          tx.onerror = (e) => reject(e.target.error);
-        });
-      }
-      async clearAll() {
-        return new Promise((resolve, reject) => {
-          const tx = this.db.transaction('projects', 'readwrite');
-          tx.objectStore('projects').clear();
-          tx.oncomplete = () => resolve();
-          tx.onerror = (e) => reject(e.target.error);
-        });
-      }
-    }
-
-    const Toast = {
-      show(msg, type = 'info', dur = 3500) {
-        const shelf = document.getElementById('toast-shelf');
-        const t = document.createElement('div');
-        t.className = `toast toast-${type}`;
-        t.innerHTML = `<div>${DOMSanitizer.escape(msg)}</div>`;
-        shelf.appendChild(t);
-        setTimeout(() => t.remove(), dur);
-      }
-    };
-
-    class ScrollNavigationController {
-      constructor() {
-        this.navItems = document.querySelectorAll('.nav-item');
-        this.sections = document.querySelectorAll('.scroll-section');
-        this.breadcrumb = document.getElementById('header-breadcrumb-title');
-        this.sidebar = document.getElementById('app-sidebar');
-        this.backdrop = document.getElementById('sidebar-backdrop');
-
-        this.titleMap = {
-          'sec-dashboard': 'Dashboard Overview',
-          'sec-ai-editor': 'Stage 02: Auto Director',
-          'sec-editor-workspace': 'Stage 03: Workspace',
-          'sec-subtitle-studio': 'Stage 04: Subtitle Studio',
-          'sec-export-center': 'Stage 05: Export Center',
-          'sec-settings': 'Stage 06: Settings'
-        };
-
-        this.init();
-      }
-      init() {
-        this.navItems.forEach(item => {
-          item.addEventListener('click', () => {
-            const targetId = item.getAttribute('data-target');
-            const el = document.getElementById(targetId);
-            if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: 'smooth' });
-            this.sidebar.classList.remove('mobile-open');
-            this.backdrop.classList.remove('active');
-          });
-        });
-
-        document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
-          const open = this.sidebar.classList.toggle('mobile-open');
-          this.backdrop.classList.toggle('active', open);
-        });
-        this.backdrop?.addEventListener('click', () => {
-          this.sidebar.classList.remove('mobile-open');
-          this.backdrop.classList.remove('active');
-        });
-
-        window.addEventListener('scroll', () => {
-          let current = 'sec-dashboard';
-          this.sections.forEach(s => {
-            if (window.scrollY >= s.offsetTop - 120) current = s.id;
-          });
-          this.navItems.forEach(n => n.classList.toggle('active', n.getAttribute('data-target') === current));
-          if (this.titleMap[current]) this.breadcrumb.innerText = this.titleMap[current];
-        });
-      }
-      scrollTo(id) {
-        const el = document.getElementById(id);
-        if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: 'smooth' });
-      }
-    }
-
-    // =========================================================================
-    // ⚡ 100% LOCAL ZERO-API AUTOMATIC VIDEO EDITING ENGINE (Web Audio API)
-    // =========================================================================
-    class LocalAutoEditingEngine {
-      /**
-       * Automatically detects speech vs silence pauses in video audio without any API key.
-       */
-      static async analyzeAndGeneratePlan(videoFile, { preset, silenceDbThreshold = -35, minPauseDuration = 0.4, targetFormat, onLog = () => {} }) {
-        onLog('⚡ Initializing Local Web Audio Analyzer (Zero API Key)...', 'highlight');
-
-        let audioBuffer = null;
-        try {
-          const arrayBuffer = await videoFile.arrayBuffer();
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-          onLog(`Decoded audio: ${audioBuffer.duration.toFixed(1)}s, ${audioBuffer.sampleRate}Hz`, 'success');
-        } catch (err) {
-          onLog('Standard audio decode failed. Falling back to timed cadence slicing.', 'highlight');
-          return this.generateCadenceFallback(videoFile, targetFormat);
-        }
-
-        const channelData = audioBuffer.getChannelData(0);
-        const sampleRate = audioBuffer.sampleRate;
-        const totalDuration = audioBuffer.duration;
-
-        onLog('Scanning audio waveform windows for Voice Activity...', 'highlight');
-
-        const windowSec = 0.04; // 40ms window
-        const windowSamples = Math.floor(sampleRate * windowSec);
-        const numWindows = Math.floor(channelData.length / windowSamples);
-
-        const energyLevels = new Float32Array(numWindows);
-        for (let i = 0; i < numWindows; i++) {
-          let sumSquares = 0;
-          const offset = i * windowSamples;
-          for (let s = 0; s < windowSamples; s++) {
-            const val = channelData[offset + s];
-            sumSquares += val * val;
-          }
-          const rms = Math.sqrt(sumSquares / windowSamples);
-          const db = rms > 0.00001 ? 20 * Math.log10(rms) : -100;
-          energyLevels[i] = db;
-        }
-
-        // Classify active windows vs dead air
-        const isVoice = new Uint8Array(numWindows);
-        for (let i = 0; i < numWindows; i++) {
-          isVoice[i] = energyLevels[i] > silenceDbThreshold ? 1 : 0;
-        }
-
-        // Smooth out micro-pauses (e.g. natural breath under 0.2s shouldn't be cut)
-        const minPauseWindows = Math.floor(minPauseDuration / windowSec);
-        let silenceCount = 0;
-        for (let i = 0; i < numWindows; i++) {
-          if (isVoice[i] === 0) {
-            silenceCount++;
-          } else {
-            if (silenceCount > 0 && silenceCount < minPauseWindows) {
-              for (let fill = i - silenceCount; fill < i; fill++) {
-                isVoice[fill] = 1; // bridges micro pauses
-              }
-            }
-            silenceCount = 0;
-          }
-        }
-
-        // Extract continuous segments
-        const rawSegments = [];
-        let inSpeech = false;
-        let segStart = 0;
-        const paddingSec = 0.12; // 120ms lead-in/lead-out margin to avoid clipping words
-
-        for (let i = 0; i < numWindows; i++) {
-          const time = i * windowSec;
-          if (isVoice[i] === 1 && !inSpeech) {
-            inSpeech = true;
-            segStart = Math.max(0, time - paddingSec);
-          } else if (isVoice[i] === 0 && inSpeech) {
-            inSpeech = false;
-            const segEnd = Math.min(totalDuration, time + paddingSec);
-            if (segEnd - segStart > 0.3) {
-              rawSegments.push({
-                start: Number(segStart.toFixed(2)),
-                end: Number(segEnd.toFixed(2)),
-                duration: Number((segEnd - segStart).toFixed(2))
-              });
-            }
-          }
-        }
-
-        if (inSpeech) {
-          rawSegments.push({
-            start: Number(segStart.toFixed(2)),
-            end: Number(totalDuration.toFixed(2)),
-            duration: Number((totalDuration - segStart).toFixed(2))
-          });
-        }
-
-        onLog(`Detected ${rawSegments.length} active speech segments (dead air eliminated).`, 'success');
-
-        let finalSegments = rawSegments;
-
-        // If Viral Shorts mode: rank by energy and select top 45-60s
-        if (preset === 'viral-shorts' && rawSegments.length > 3) {
-          onLog('Ranking high-energy moments for Viral Shorts...', 'highlight');
-          const ranked = rawSegments.map(seg => {
-            const startWin = Math.floor(seg.start / windowSec);
-            const endWin = Math.floor(seg.end / windowSec);
-            let sumEnergy = 0;
-            for (let w = startWin; w < endWin; w++) sumEnergy += energyLevels[w] || -100;
-            const avgEnergy = sumEnergy / Math.max(1, endWin - startWin);
-            return { ...seg, energy: avgEnergy };
-          });
-
-          ranked.sort((a, b) => b.energy - a.energy);
-          let accumulated = 0;
-          const chosen = [];
-          for (const s of ranked) {
-            if (accumulated + s.duration <= 50) {
-              chosen.push(s);
-              accumulated += s.duration;
-            }
-          }
-          chosen.sort((a, b) => a.start - b.start);
-          finalSegments = chosen;
-          onLog(`Curated top ${chosen.length} high-energy clips (~${accumulated.toFixed(1)}s).`, 'success');
-        }
-
-        if (finalSegments.length === 0) {
-          finalSegments = [{ start: 0, end: totalDuration, duration: totalDuration }];
-        }
-
-        // Build EDL format
-        let timelineAccum = 0;
-        const edlSegments = finalSegments.map((s, idx) => {
-          const dur = s.end - s.start;
-          const op = (preset === 'punch-in' && idx % 2 === 1) ? 'zoom' : 'keep';
-          const seg = {
-            id: `seg_${idx + 1}`,
-            sourceStart: s.start,
-            sourceEnd: s.end,
-            timelineStart: Number(timelineAccum.toFixed(2)),
-            timelineEnd: Number((timelineAccum + dur).toFixed(2)),
-            operation: op,
-            reason: op === 'zoom' ? 'Punch-in Dialogue Highlight' : 'Clear Dialogue Segment',
-            speed: 1.0,
-            transition: 'cut'
-          };
-          timelineAccum += dur;
-          return seg;
-        });
-
-        // Automatically create synchronized kinetic subtitles for speech blocks
-        const captions = finalSegments.map((s, idx) => ({
-          id: `cap_${idx + 1}`,
-          start: s.start,
-          end: s.end,
-          text: `[KEY PHRASE #${idx + 1}]`
-        }));
-
-        const isShort = targetFormat.includes('shorts') || targetFormat.includes('reels');
-
-        return {
-          project: {
-            title: videoFile.name.replace(/\.[^/.]+$/, ''),
-            target: targetFormat,
-            aspectRatio: isShort ? '9:16' : '16:9',
-            durationEstimate: Number(timelineAccum.toFixed(2))
-          },
-          analysis: {
-            summary: `Local Engine automatically removed silent pauses. Preserved ${finalSegments.length} punchy dialogue segments.`,
-            highlights: ['Dead Air Removed', 'Voice Activity Preserved', 'Fast Pacing Active']
-          },
-          segments: edlSegments,
-          captions: captions
-        };
-      }
-
-      static generateCadenceFallback(file, targetFormat) {
-        return {
-          project: { title: file.name, target: targetFormat, aspectRatio: '16:9', durationEstimate: 30 },
-          analysis: { summary: 'Paced dialogue edit generated locally.', highlights: ['Auto-timed Cut'] },
-          segments: [{ id: 'seg_1', sourceStart: 0, sourceEnd: 15, timelineStart: 0, timelineEnd: 15, operation: 'keep', reason: 'Highlight' }],
-          captions: []
-        };
-      }
-    }
-
-    // =========================================================================
-    // CONTROLLERS
-    // =========================================================================
-    class AutoDirectorController {
-      constructor() {
-        this.dropzone = document.getElementById('video-dropzone');
-        this.fileInput = document.getElementById('video-file-input');
-        this.metadataPanel = document.getElementById('video-metadata-panel');
-        this.videoPlayer = document.getElementById('ai-editor-video');
-        this.placeholder = document.getElementById('ai-editor-placeholder');
-
-        this.tabLocal = document.getElementById('tab-mode-local');
-        this.tabCloud = document.getElementById('tab-mode-cloud');
-        this.panelLocal = document.getElementById('panel-local-director');
-        this.panelCloud = document.getElementById('panel-cloud-director');
-
-        this.btnRunLocal = document.getElementById('btn-run-local-director');
-        this.btnRunCloud = document.getElementById('btn-run-cloud-director');
-
-        this.pipelineBox = document.getElementById('ai-pipeline-box');
-        this.progressBar = document.getElementById('pipeline-progress-bar');
-        this.statusText = document.getElementById('pipeline-status-text');
-        this.statusPct = document.getElementById('pipeline-status-pct');
-        this.logStream = document.getElementById('activity-log-stream');
-
-        this.planReviewCard = document.getElementById('plan-review-card');
-        this.planMetrics = document.getElementById('plan-summary-metrics');
-        this.planNarrative = document.getElementById('plan-narrative-summary');
-        this.planHighlights = document.getElementById('plan-highlights-tags');
-        this.btnApprove = document.getElementById('btn-approve-plan');
-        this.btnReject = document.getElementById('btn-reject-plan');
-        this.btnInspectEdl = document.getElementById('btn-inspect-edl-modal');
-
-        this.pendingEdl = null;
-        this.init();
-      }
-
-      init() {
-        this.dropzone.addEventListener('click', () => this.fileInput.click());
-        this.fileInput.addEventListener('change', (e) => {
-          if (e.target.files && e.target.files[0]) this.handleFile(e.target.files[0]);
-        });
-
-        this.tabLocal.addEventListener('click', () => {
-          this.tabLocal.classList.add('active');
-          this.tabCloud.classList.remove('active');
-          this.panelLocal.style.display = 'block';
-          this.panelCloud.style.display = 'none';
-        });
-
-        this.tabCloud.addEventListener('click', () => {
-          this.tabCloud.classList.add('active');
-          this.tabLocal.classList.remove('active');
-          this.panelCloud.style.display = 'block';
-          this.panelLocal.style.display = 'none';
-        });
-
-        this.btnRunLocal.addEventListener('click', () => this.runLocalAutoEdit());
-        this.btnRunCloud.addEventListener('click', () => this.runCloudEdit());
-
-        this.btnApprove.addEventListener('click', () => this.approvePlan());
-        this.btnReject.addEventListener('click', () => {
-          this.pendingEdl = null;
-          this.planReviewCard.style.display = 'none';
-          Toast.show('Plan rejected. You can adjust parameters.', 'info');
-        });
-
-        this.btnInspectEdl.addEventListener('click', () => {
-          if (!this.pendingEdl) return;
-          App.modal.open({
-            title: 'EDL JSON Inspection',
-            htmlContent: `<pre style="font-size:11px; max-height:400px; overflow-y:auto; color:#a5b4fc; background:#090c13; padding:12px; border-radius:6px;">${DOMSanitizer.escape(JSON.stringify(this.pendingEdl, null, 2))}</pre>`,
-            confirmText: 'Done'
-          });
-        });
-      }
-
-      appendLog(msg, type = 'normal') {
-        const line = document.createElement('div');
-        line.className = 'activity-log-line';
-        line.innerHTML = `<span class="activity-log-time">[${new Date().toLocaleTimeString().slice(3, 8)}]</span> <span class="activity-log-msg ${type}">${DOMSanitizer.escape(msg)}</span>`;
-        this.logStream.appendChild(line);
-        this.logStream.scrollTop = this.logStream.scrollHeight;
-      }
-
-      handleFile(file) {
-        AppState.loadedVideoFile = file;
-        const url = BlobLifecycleManager.create(file);
-        this.videoPlayer.src = url;
-        this.videoPlayer.style.display = 'block';
-        this.placeholder.style.display = 'none';
-
-        this.videoPlayer.onloadedmetadata = () => {
-          AppState.loadedVideoMetadata = {
-            fileName: file.name,
-            fileSize: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-            duration: this.videoPlayer.duration,
-            formattedDuration: `${Math.floor(this.videoPlayer.duration / 60)}:${Math.floor(this.videoPlayer.duration % 60).toString().padStart(2, '0')}`,
-            width: this.videoPlayer.videoWidth,
-            height: this.videoPlayer.videoHeight,
-            aspectRatio: (this.videoPlayer.videoWidth / this.videoPlayer.videoHeight > 1) ? '16:9' : '9:16'
-          };
-
-          document.getElementById('meta-filename').innerText = file.name;
-          document.getElementById('meta-filesize').innerText = AppState.loadedVideoMetadata.fileSize;
-          document.getElementById('meta-resolution').innerText = `${AppState.loadedVideoMetadata.width}x${AppState.loadedVideoMetadata.height}`;
-          document.getElementById('meta-duration').innerText = AppState.loadedVideoMetadata.formattedDuration;
-          document.getElementById('meta-ratio').innerText = AppState.loadedVideoMetadata.aspectRatio;
-          document.getElementById('meta-mime').innerText = file.type || 'video/mp4';
-          this.metadataPanel.style.display = 'block';
-
-          AppState.activeProject = {
-            id: 'proj_' + Date.now(),
-            title: file.name.replace(/\.[^/.]+$/, ''),
-            mediaBlob: file,
-            metadata: AppState.loadedVideoMetadata,
-            edl: null
-          };
-
-          App.editor.syncWorkspace();
-          Toast.show(`Ingested "${file.name}"`, 'success');
-        };
-      }
-
-      async runLocalAutoEdit() {
-        if (!AppState.loadedVideoFile) {
-          Toast.show('Please upload a video file first!', 'warning');
-          return;
-        }
-
-        this.pipelineBox.style.display = 'block';
-        this.planReviewCard.style.display = 'none';
-        this.logStream.innerHTML = '';
-        this.progressBar.style.width = '20%';
-        this.statusPct.innerText = '20%';
-        this.statusText.innerText = 'Extracting audio channels...';
-
-        const preset = document.getElementById('local-preset-select').value;
-        const silenceDb = parseFloat(document.getElementById('local-silence-thresh').value);
-        const minPause = parseFloat(document.getElementById('local-min-pause').value);
-        const format = document.getElementById('local-target-format').value;
-
-        try {
-          const edl = await LocalAutoEditingEngine.analyzeAndGeneratePlan(AppState.loadedVideoFile, {
-            preset,
-            silenceDbThreshold: silenceDb,
-            minPauseDuration: minPause,
-            targetFormat: format,
-            onLog: (m, t) => this.appendLog(m, t)
-          });
-
-          this.progressBar.style.width = '100%';
-          this.statusPct.innerText = '100%';
-          this.statusText.innerText = 'Local Analysis Complete!';
-          this.appendLog('EDL ready for approval without any external API key.', 'success');
-
-          this.pendingEdl = edl;
-          this.btnInspectEdl.style.display = 'inline-flex';
-          this.displayReview(edl);
-          Toast.show('Local Auto-Edit successfully generated!', 'success');
-        } catch (err) {
-          this.appendLog(`Error: ${err.message}`, 'error');
-          Toast.show(`Local analysis error: ${err.message}`, 'error');
-        }
-      }
-
-      async runCloudEdit() {
-        if (!AppState.apiKey) {
-          Toast.show('Please enter your Gemini API Key in Settings below to use cloud reasoning.', 'warning');
-          App.navigation.scrollTo('sec-settings');
-          return;
-        }
-        Toast.show('Gemini Cloud Analysis triggered...', 'info');
-      }
-
-      displayReview(edl) {
-        this.planReviewCard.style.display = 'block';
-        this.planMetrics.innerText = `${edl.segments.length} Cuts | ~${edl.project.durationEstimate}s Total`;
-        this.planNarrative.innerText = edl.analysis.summary;
-        this.planHighlights.innerHTML = '';
-        edl.analysis.highlights.forEach(h => {
-          const tag = document.createElement('span');
-          tag.style.cssText = 'font-size:11px; padding:3px 8px; border-radius:4px; background:rgba(16,185,129,0.15); color:var(--accent-emerald); border:1px solid rgba(16,185,129,0.3);';
-          tag.innerText = h;
-          this.planHighlights.appendChild(tag);
-        });
-      }
-
-      async approvePlan() {
-        if (!this.pendingEdl) return;
-        AppState.activeProject.edl = this.pendingEdl;
-        await App.db.saveProject(AppState.activeProject);
-
-        App.editor.syncWorkspace();
-        App.subtitles.syncCaptions();
-        App.navigation.scrollTo('sec-editor-workspace');
-        Toast.show('Plan approved! Loaded onto interactive timeline.', 'success');
-      }
-    }
-
-    class WorkspaceController {
-      constructor() {
-        this.canvas = document.getElementById('workspace-canvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.video = document.getElementById('workspace-video');
-        this.playhead = document.getElementById('timeline-playhead');
-        this.videoTrack = document.getElementById('timeline-video-track-body');
-        this.captionsTrack = document.getElementById('timeline-captions-track-body');
-        this.btnPlay = document.getElementById('btn-timeline-play-toggle');
-        this.iconPlay = document.getElementById('icon-timeline-play');
-        this.textPlay = document.getElementById('text-timeline-play');
-        this.isPlaying = false;
-        this.init();
-      }
-
-      init() {
-        this.btnPlay.addEventListener('click', () => {
-          if (!this.video.src) return;
-          if (this.isPlaying) {
-            this.video.pause();
-            this.isPlaying = false;
-            this.textPlay.innerText = 'Play';
-            this.iconPlay.setAttribute('data-lucide', 'play');
-          } else {
-            this.video.play();
-            this.isPlaying = true;
-            this.textPlay.innerText = 'Pause';
-            this.iconPlay.setAttribute('data-lucide', 'pause');
-            this.loop();
-          }
-          lucide.createIcons();
-        });
-
-        document.getElementById('timeline-interactive-tracks').addEventListener('click', (e) => {
-          if (!this.video.duration || e.target.closest('.clip-cut-segment')) return;
-          const rect = e.currentTarget.getBoundingClientRect();
-          const clickRatio = Math.max(0, Math.min(1, (e.clientX - rect.left - 102) / (rect.width - 114)));
-          this.video.currentTime = clickRatio * this.video.duration;
-          this.drawFrame();
-        });
-
-        document.getElementById('btn-timeline-split').addEventListener('click', () => {
-          Toast.show(`Split segment at ${this.video.currentTime.toFixed(2)}s`, 'info');
-        });
-
-        document.getElementById('btn-ins-delete-segment').addEventListener('click', () => {
-          if (AppState.selectedSegmentIndex >= 0 && AppState.activeProject?.edl?.segments) {
-            AppState.activeProject.edl.segments.splice(AppState.selectedSegmentIndex, 1);
-            AppState.selectedSegmentIndex = -1;
-            this.renderEdl();
-            Toast.show('Segment removed', 'info');
-          }
-        });
-
-        document.getElementById('btn-ws-to-export').addEventListener('click', () => App.navigation.scrollTo('sec-export-center'));
-      }
-
-      loop() {
-        if (!this.isPlaying) return;
-        this.drawFrame();
-        requestAnimationFrame(() => this.loop());
-      }
-
-      drawFrame() {
-        if (!this.video || !this.video.videoWidth) return;
-        this.canvas.width = this.video.videoWidth;
-        this.canvas.height = this.video.videoHeight;
-        this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
-
-        const cur = this.video.currentTime;
-        const activeSeg = AppState.activeProject?.edl?.segments?.find(s => cur >= s.sourceStart && cur <= s.sourceEnd);
-        if (activeSeg && activeSeg.operation === 'zoom') {
-          const z = 1.15;
-          const zw = this.canvas.width / z;
-          const zh = this.canvas.height / z;
-          this.ctx.drawImage(this.video, (this.canvas.width - zw) / 2, (this.canvas.height - zh) / 2, zw, zh, 0, 0, this.canvas.width, this.canvas.height);
-        }
-
-        // Draw subtitles if any
-        const cap = AppState.activeProject?.edl?.captions?.find(c => cur >= c.start && cur <= c.end);
-        if (cap) {
-          this.ctx.font = `800 ${this.canvas.height * 0.05}px sans-serif`;
-          this.ctx.fillStyle = AppState.subtitleStyle.textColor;
-          this.ctx.textAlign = 'center';
-          this.ctx.strokeStyle = '#000';
-          this.ctx.lineWidth = 4;
-          this.ctx.strokeText(cap.text, this.canvas.width / 2, this.canvas.height * 0.88);
-          this.ctx.fillText(cap.text, this.canvas.width / 2, this.canvas.height * 0.88);
-        }
-
-        // Playhead update
-        const duration = this.video.duration || 1;
-        const trackW = document.getElementById('timeline-interactive-tracks').offsetWidth - 114;
-        this.playhead.style.left = `${102 + (cur / duration) * trackW}px`;
-        document.getElementById('ws-timecode').innerText = `00:${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(Math.floor(cur % 60)).padStart(2, '0')}.${Math.floor((cur % 1) * 10)}`;
-      }
-
-      syncWorkspace() {
-        if (!AppState.activeProject) return;
-        document.getElementById('workspace-project-title').innerText = `Workspace: ${AppState.activeProject.title}`;
-        if (AppState.loadedVideoFile && !this.video.src) {
-          this.video.src = BlobLifecycleManager.create(AppState.loadedVideoFile);
-          this.video.onloadedmetadata = () => this.drawFrame();
-        }
-        if (AppState.activeProject.edl) this.renderEdl();
-      }
-
-      renderEdl() {
-        const edl = AppState.activeProject?.edl;
-        if (!edl) return;
-
-        const dur = AppState.loadedVideoMetadata?.duration || 60;
-        this.videoTrack.innerHTML = '';
-        edl.segments.forEach((s, idx) => {
-          const clip = document.createElement('div');
-          clip.className = `clip-cut-segment ${AppState.selectedSegmentIndex === idx ? 'selected' : ''}`;
-          clip.style.left = `${(s.sourceStart / dur) * 100}%`;
-          clip.style.width = `${((s.sourceEnd - s.sourceStart) / dur) * 100}%`;
-          clip.style.background = 'linear-gradient(90deg, #10b981, #06b6d4)';
-          clip.innerText = `Cut ${idx + 1} (${s.sourceStart}s - ${s.sourceEnd}s)`;
-          clip.addEventListener('click', (e) => {
-            e.stopPropagation();
-            AppState.selectedSegmentIndex = idx;
-            this.video.currentTime = s.sourceStart;
-            this.drawFrame();
-            this.renderEdl();
-            document.getElementById('ins-segment-title').innerText = `Segment ${idx + 1}: ${s.reason}`;
-            document.getElementById('ins-segment-start').value = s.sourceStart;
-            document.getElementById('ins-segment-end').value = s.sourceEnd;
-          });
-          this.videoTrack.appendChild(clip);
-        });
-      }
-    }
-
-    class SubtitleStudioController {
-      constructor() {
-        this.list = document.getElementById('sub-generated-list');
-        document.getElementById('btn-add-caption-item').addEventListener('click', () => {
-          if (!AppState.activeProject?.edl) return;
-          AppState.activeProject.edl.captions.push({ id: `cap_${Date.now()}`, start: 0, end: 2.5, text: 'Custom Subtitle' });
-          this.syncCaptions();
-        });
-      }
-      syncCaptions() {
-        const caps = AppState.activeProject?.edl?.captions;
-        if (!caps || caps.length === 0) return;
-        this.list.innerHTML = '';
-        caps.forEach((c, idx) => {
-          const row = document.createElement('div');
-          row.style.cssText = 'padding:6px 10px; background:var(--bg-surface-elevated); border-radius:6px; display:flex; gap:8px; align-items:center;';
-          row.innerHTML = `
-            <input type="text" class="input-field btn-sm" value="${DOMSanitizer.escape(c.text)}" style="flex:1;" />
-            <span class="font-mono" style="font-size:11px; color:var(--text-dim);">${c.start}s - ${c.end}s</span>
-          `;
-          row.querySelector('input').addEventListener('input', (e) => c.text = e.target.value);
-          this.list.appendChild(row);
-        });
-      }
-    }
-
-    class RenderEngineController {
-      constructor() {
-        document.getElementById('btn-start-export').addEventListener('click', () => this.exportVideo());
-      }
-
-      async exportVideo() {
-        if (!AppState.loadedVideoFile || !AppState.activeProject?.edl) {
-          Toast.show('No video or cut plan ready to export!', 'warning');
-          return;
-        }
-
-        const panel = document.getElementById('export-progress-panel');
-        const pBar = document.getElementById('export-progress-bar');
-        const pPct = document.getElementById('export-status-pct');
-        const success = document.getElementById('export-success-box');
-
-        panel.style.display = 'block';
-        success.style.display = 'none';
-
-        const edl = AppState.activeProject.edl;
-        const res = document.getElementById('export-resolution').value;
-        const width = res === '1080p' ? 1920 : 1280;
-        const height = res === '1080p' ? 1080 : 720;
-        const fps = 30;
-
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-
-          const video = document.createElement('video');
-          video.muted = true;
-          video.src = BlobLifecycleManager.create(AppState.loadedVideoFile);
-          await new Promise(r => video.onloadedmetadata = r);
-
-          const muxer = new window.Mp4Muxer.Muxer({
-            target: new window.Mp4Muxer.ArrayBufferTarget(),
-            video: { codec: 'avc', width, height },
-            fastStart: 'in-memory'
-          });
-
-          const encoder = new VideoEncoder({
-            output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-            error: (e) => console.error(e)
-          });
-
-          encoder.configure({ codec: 'avc1.42001f', width, height, bitrate: 3_000_000, framerate: fps });
-
-          let totalFrames = 0;
-          edl.segments.forEach(s => totalFrames += Math.round((s.sourceEnd - s.sourceStart) * fps));
-
-          let frameCount = 0;
-          const micros = Math.round(1_000_000 / fps);
-
-          for (const seg of edl.segments) {
-            const frames = Math.round((seg.sourceEnd - seg.sourceStart) * fps);
-            for (let f = 0; f < frames; f++) {
-              const time = seg.sourceStart + (f / fps);
-              await new Promise(resSeek => {
-                const onSeek = () => { video.removeEventListener('seeked', onSeek); resSeek(); };
-                video.addEventListener('seeked', onSeek);
-                video.currentTime = time;
-              });
-
-              ctx.drawImage(video, 0, 0, width, height);
-
-              const vf = new VideoFrame(canvas, { timestamp: frameCount * micros, duration: micros });
-              encoder.encode(vf, { keyFrame: frameCount % 60 === 0 });
-              vf.close();
-
-              frameCount++;
-              const pct = Math.min(99, Math.round((frameCount / totalFrames) * 100));
-              pBar.style.width = `${pct}%`;
-              pPct.innerText = `${pct}%`;
-            }
-          }
-
-          await encoder.flush();
-          encoder.close();
-          muxer.finalize();
-
-          const outBlob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
-          const outUrl = BlobLifecycleManager.create(outBlob);
-
-          document.getElementById('btn-download-video').href = outUrl;
-          panel.style.display = 'none';
-          success.style.display = 'block';
-          Toast.show('Render complete without using any API key!', 'success');
-        } catch (err) {
-          Toast.show(`Render error: ${err.message}`, 'error');
-          panel.style.display = 'none';
-        }
-      }
-    }
-
-    class SettingsController {
-      constructor() {
-        const inputKey = document.getElementById('input-api-key');
-        const savedKey = localStorage.getItem('autoedit_gemini_key') || '';
-        if (savedKey) {
-          inputKey.value = savedKey;
-          AppState.apiKey = savedKey;
-        }
-
-        document.getElementById('btn-save-key').addEventListener('click', () => {
-          const val = inputKey.value.trim();
-          localStorage.setItem('autoedit_gemini_key', val);
-          AppState.apiKey = val;
-          Toast.show('Key preferences saved', 'success');
-        });
-
-        document.getElementById('btn-remove-key').addEventListener('click', () => {
-          localStorage.removeItem('autoedit_gemini_key');
-          inputKey.value = '';
-          AppState.apiKey = '';
-          Toast.show('API key cleared. Defaulting to 100% Free Local Engine.', 'info');
-        });
-
-        document.getElementById('btn-purge-all-data').addEventListener('click', async () => {
-          await App.db.clearAll();
-          localStorage.clear();
-          Toast.show('Local database purged.', 'info');
-          setTimeout(() => location.reload(), 1000);
-        });
-      }
-    }
-
-    class Application {
-      constructor() {
-        this.db = new DatabaseService();
-      }
-      async start() {
-        await this.db.init();
-        this.navigation = new ScrollNavigationController();
-        this.autoDirector = new AutoDirectorController();
-        this.editor = new WorkspaceController();
-        this.subtitles = new SubtitleStudioController();
-        this.render = new RenderEngineController();
-        this.settings = new SettingsController();
-
-        document.getElementById('btn-empty-upload-trigger')?.addEventListener('click', () => this.navigation.scrollTo('sec-ai-editor'));
-        document.getElementById('btn-top-new-project')?.addEventListener('click', () => this.navigation.scrollTo('sec-ai-editor'));
-
-        lucide.createIcons();
-        console.log('%c AUTOEDIT AI: 100% Local Autonomous Mode Ready ', 'background:#10b981; color:#000; font-weight:bold; padding:4px 8px; border-radius:4px;');
-      }
-    }
-
-    const App = new Application();
-    window.addEventListener('DOMContentLoaded', () => App.start());
-  </script>
-</body>
-</html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AUTOEDIT AI — Local Video Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"></script>
+<style>
+:root{--bg:#07090e;--s:#0e121b;--e:#151a27;--b:rgba(255,255,255,.1);--ac:#6366f1;--g:#10b981;--r:#f43f5e;--c:#06b6d4;--t:#f8fafc;--m:#94a3b8;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+nav{position:sticky;top:0;z-index:20;display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:rgba(14,18,27,.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--b)}
+nav b{margin-right:12px;letter-spacing:.5px;background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;background-clip:text;color:transparent}
+nav a{color:var(--m);text-decoration:none;padding:6px 10px;border-radius:8px;font-size:13px}nav a:hover{background:var(--e);color:var(--t)}
+section{padding:30px 18px;max-width:1200px;margin:auto;scroll-margin-top:56px;border-bottom:1px solid var(--b)}
+h2{font-size:22px}.sub{color:var(--m);margin:2px 0 16px;font-size:13px}h3{font-size:15px;margin-bottom:12px}
+.card{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:18px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.ws{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+@media(max-width:800px){.g2,.ws{grid-template-columns:1fr}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;min-height:38px;border-radius:8px;border:1px solid var(--b);background:var(--e);color:var(--t);font-size:13px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:rgba(255,255,255,.3)}.btn:disabled{opacity:.5;cursor:not-allowed}.bs{min-height:30px;padding:4px 10px;font-size:12px}
+.pri{background:linear-gradient(135deg,#6366f1,#8b5cf6 50%,#06b6d4);border:0}.dan{color:var(--r);border-color:rgba(244,63,94,.4)}.suc{color:var(--g);border-color:rgba(16,185,129,.4)}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}.fg label{font-size:12px;font-weight:600;color:var(--m)}
+.in{width:100%;background:var(--e);border:1px solid var(--b);color:var(--t);padding:8px 10px;border-radius:8px;font-size:13px;outline:none}.in:focus{border-color:var(--ac)}
+input[type=color].in{height:38px;padding:3px}
+.drop{border:2px dashed rgba(99,102,241,.45);border-radius:14px;padding:30px 14px;text-align:center;cursor:pointer}.drop:hover,.drop.ov{background:rgba(99,102,241,.08)}
+.vp{background:#000;border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:200px;overflow:hidden}
+.vp video,.vp canvas{width:100%;max-height:420px;object-fit:contain}
+.bar{height:6px;background:rgba(255,255,255,.08);border-radius:9px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6366f1,#06b6d4);transition:width .2s}
+.log{background:#05070b;border:1px solid var(--b);border-radius:8px;padding:10px;font:11.5px ui-monospace,Menlo,monospace;color:#cbd5e1;height:110px;overflow:auto}
+.box{background:var(--e);border:1px solid var(--b);border-radius:10px;padding:14px;margin-top:14px;display:none}
+.row{display:flex;gap:6px;align-items:center;margin-bottom:6px}.n{width:76px;flex:none}
+.lane{position:relative;height:38px;background:#090c12;border:1px solid var(--b);border-radius:8px;margin-bottom:8px;overflow:hidden}
+.seg{position:absolute;top:2px;bottom:2px;border-radius:5px;background:linear-gradient(90deg,#10b981,#06b6d4);font-size:10px;font-weight:700;padding:3px 5px;overflow:hidden;white-space:nowrap;cursor:pointer;border:1px solid rgba(255,255,255,.3)}
+.seg.sel{border:2px solid #fff}.cap{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
+#lanes{position:relative;cursor:pointer}#ph{position:absolute;top:0;bottom:0;width:2px;background:var(--r);z-index:5;pointer-events:none}
+.item{padding:6px 8px;background:var(--e);border-radius:6px;margin-bottom:5px;font-size:12px;cursor:pointer;display:flex;justify-content:space-between}.item.sel{outline:1px solid var(--ac)}
+#toasts{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--e);border:1px solid var(--b);border-left:4px solid var(--c);padding:10px 14px;border-radius:8px;max-width:340px;font-size:13px}.toast.error{border-left-color:var(--r)}.toast.warn{border-left-color:#f59e0b}.toast.success{border-left-color:var(--g)}
+.mono{font-family:ui-monospace,Menlo,monospace}.mut{color:var(--m)}
+</style></head><body>
+<nav><b>AUTOEDIT AI</b><a href="#dash">Dashboard</a><a href="#dir">Auto Director</a><a href="#workspace">Workspace</a><a href="#subs">Subtitles</a><a href="#exp">Export</a></nav>
+
+<section id="dash"><h2>Dashboard</h2><p class="sub">100% local: videos are processed in your browser and never uploaded. No API key needed.</p>
+<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 style="margin:0">Saved projects <span class="mut" id="stat"></span></h3>
+<button class="btn bs dan" id="purge">Purge all data</button></div><div id="plist" class="g3"></div></div></section>
+
+<section id="dir"><h2>Auto Director</h2><p class="sub">Detects silence and dead air from the audio waveform, then builds a cut plan you can edit.</p>
+<div class="g2"><div>
+<div class="card" style="margin-bottom:16px"><h3>Source video</h3>
+<div class="drop" id="drop" tabindex="0"><input type="file" id="file" accept="video/*" hidden><b>Click or drag a video here</b><div class="mut" style="font-size:12px">MP4, WebM, MOV</div></div>
+<div id="meta" class="mut mono" style="font-size:12px;margin-top:10px"></div></div>
+<div class="card"><h3>Preview</h3><div class="vp"><video id="sv" controls playsinline></video></div></div></div>
+<div class="card"><h3>Local engine settings</h3>
+<div class="fg"><label>Preset</label><select class="in" id="preset"><option value="jumpcut">Smart Jumpcut: remove silent pauses</option><option value="viral">Viral Shorts: top high-energy clips (~50s)</option><option value="punch">Kinetic Vlog: jumpcut + punch-in zoom</option></select></div>
+<div class="g2"><div class="fg"><label>Silence threshold</label><select class="in" id="db"><option value="-35">Normal room (-35 dB)</option><option value="-42">Quiet studio (-42 dB)</option><option value="-28">Noisy (-28 dB)</option></select></div>
+<div class="fg"><label>Minimum pause to cut</label><select class="in" id="pause"><option value=".35">0.35s</option><option value=".5">0.50s</option><option value=".75">0.75s</option></select></div></div>
+<div class="fg"><label>Target format</label><select class="in" id="fmt"><option value="youtube-shorts">YouTube Shorts (9:16)</option><option value="instagram-reels">Instagram Reels (9:16)</option><option value="youtube-main">YouTube 16:9</option><option value="general">General</option></select></div>
+<button class="btn pri" id="run" style="width:100%;height:44px">Run Auto-Edit</button>
+<div class="box" id="pbox"><div class="row" style="justify-content:space-between"><b id="ptxt">Working...</b><span class="mono" id="ppct">0%</span></div><div class="bar"><i id="pbar"></i></div><div class="log" id="log"></div></div>
+<div class="box" id="review" style="border-color:rgba(16,185,129,.5)"><b>Cut plan ready</b> <span class="mono mut" id="rmet"></span><p class="mut" id="rsum" style="margin:6px 0 12px"></p>
+<div class="row"><button class="btn suc" id="ok" style="flex:1">Approve &amp; open Workspace</button><button class="btn dan" id="no">Reject</button></div></div>
+</div></div></section>
+
+<section id="workspace"><h2 id="wt">Workspace</h2><p class="sub" id="wd">Upload a video and run the Auto Director first.</p>
+<div class="ws"><div class="card"><div class="vp" style="min-height:300px"><canvas id="cv" width="640" height="360"></canvas><video id="wv" playsinline style="display:none"></video></div>
+<div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn bs" id="play">Play</button><button class="btn bs" id="split">Split at playhead</button><button class="btn bs" id="save">Save</button><button class="btn bs pri" onclick="document.getElementById('exp').scrollIntoView()">Export</button><span class="mono mut" id="tc" style="margin-left:auto">00:00.0</span></div></div>
+<div class="card"><h3>Segment inspector</h3><div class="mut" id="itl" style="font-size:12px;margin-bottom:8px">No segment selected</div>
+<div class="row"><div class="fg" style="margin:0"><label>Start (s)</label><input class="in mono" type="number" step=".1" min="0" id="is"></div><div class="fg" style="margin:0"><label>End (s)</label><input class="in mono" type="number" step=".1" min="0" id="ie"></div></div>
+<div class="row" style="margin-top:8px"><div class="fg" style="margin:0"><label>Operation</label><select class="in" id="iop"><option value="keep">Keep</option><option value="zoom">Punch-in zoom</option></select></div><div class="fg" style="margin:0"><label>Transition</label><select class="in" id="itr"><option value="cut">Cut</option><option value="fade">Fade</option></select></div></div>
+<div class="row" style="margin-top:10px"><button class="btn bs" id="apply" style="flex:1">Apply</button><button class="btn bs dan" id="del">Delete</button></div>
+<div id="edl" style="max-height:170px;overflow:auto;margin-top:10px"></div></div></div>
+<div class="card" style="margin-top:16px"><div id="lanes"><div id="ph"></div><div class="lane" id="lv"></div><div class="lane" id="lc"></div></div><div class="mut" style="font-size:11px">Top: video cuts · Bottom: captions · click to seek</div></div></section>
+
+<section id="subs"><h2>Subtitles</h2><p class="sub">Captions are placeholder labels (&ldquo;Segment N&rdquo;): there is no speech-to-text in this build, so type your own text.</p>
+<div class="g2"><div><div class="card" style="margin-bottom:16px"><h3>Style</h3><div class="g2"><div class="fg"><label>Font</label><select class="in" id="sf"><option value="system-ui,sans-serif">System Sans</option><option value="ui-monospace,monospace">Monospace</option><option value="Impact,sans-serif">Impact</option></select></div><div class="fg"><label>Size</label><input class="in" type="number" id="ss" value="34" min="14" max="90"></div>
+<div class="fg"><label>Text color</label><input class="in" type="color" id="sc" value="#ffffff"></div><div class="fg"><label>Accent</label><input class="in" type="color" id="sa" value="#facc15"></div></div></div>
+<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Caption lines</h3><button class="btn bs" id="addcap">Add line at playhead</button></div><div id="caps" style="max-height:260px;overflow:auto;margin-top:10px"></div></div></div>
+<div class="card"><h3>Preview</h3><div class="vp" style="min-height:260px;align-items:flex-end;padding:20px"><div id="sp" style="font-weight:800;text-transform:uppercase;text-align:center">Make it <span id="spa">pop</span></div></div></div></div></section>
+
+<section id="exp"><h2>Export</h2><p class="sub">Renders your cuts to MP4 (H.264 + AAC) with WebCodecs, locally. Needs recent Chrome or Edge.</p>
+<div class="card" style="max-width:640px"><div class="g2"><div class="fg"><label>Resolution</label><select class="in" id="xres"><option value="1080">1080p</option><option value="720">720p (faster)</option></select></div>
+<div class="fg"><label>Aspect ratio (black bars, no stretching)</label><select class="in" id="xasp"><option value="src">Match source</option><option value="9:16">9:16 vertical</option><option value="16:9">16:9 landscape</option></select></div></div>
+<div class="fg"><label>Subtitles</label><select class="in" id="xsub"><option value="burn">Burn in</option><option value="none">None</option></select></div>
+<button class="btn pri" id="xgo" style="width:100%;height:44px">Render &amp; export MP4</button>
+<div class="box" id="xp"><div class="row" style="justify-content:space-between"><b>Rendering...</b><span class="mono" id="xpct">0%</span></div><div class="bar"><i id="xbar"></i></div></div>
+<div class="box" id="xok" style="border-color:rgba(16,185,129,.5)"><b style="color:var(--g)">Render complete</b><a class="btn suc" id="xdl" download="autoedit_export.mp4" style="width:100%;text-decoration:none;margin-top:10px">Download MP4</a></div></div></section>
+<div id="toasts"></div>
+
+<script>
+const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast=(m,t='info')=>{const d=document.createElement('div');d.className='toast '+t;d.textContent=m;$('toasts').appendChild(d);setTimeout(()=>d.remove(),4500)};
+const fmt=s=>{s=Math.max(0,s||0);return String(Math.floor(s/60)).padStart(2,'0')+':'+(s%60).toFixed(1).padStart(4,'0')};
+const S={file:null,meta:null,proj:null,sel:-1,url:null,pending:null,style:{size:34,font:'system-ui,sans-serif',color:'#ffffff',accent:'#facc15'}};
+let db=null,raf=0,playing=false,xurl=null;
+
+/* ---------- storage (safe if IndexedDB is unavailable) ---------- */
+const DB={
+ init(){return new Promise(r=>{try{const q=indexedDB.open('AutoEditLocal',1);q.onupgradeneeded=e=>e.target.result.createObjectStore('p',{keyPath:'id'});q.onsuccess=e=>{db=e.target.result;r()};q.onerror=()=>r()}catch(e){r()}})},
+ tx(m,f){return new Promise(r=>{if(!db)return r(null);try{const t=db.transaction('p',m),q=f(t.objectStore('p'));t.oncomplete=()=>r(q&&q.result!==undefined?q.result:true);t.onerror=t.onabort=()=>r(null)}catch(e){r(null)}})},
+ all(){return this.tx('readonly',s=>s.getAll()).then(x=>Array.isArray(x)?x:[])},
+ put(p){return this.tx('readwrite',s=>s.put(p))},del(id){return this.tx('readwrite',s=>s.delete(id))},clear(){return this.tx('readwrite',s=>s.clear())}
+};
+
+/* ---------- local audio analysis engine ---------- */
+function retime(e){let t=0;e.segments.forEach(s=>{s.timelineStart=+t.toFixed(2);t+=s.sourceEnd-s.sourceStart;s.timelineEnd=+t.toFixed(2)});e.project.duration=+t.toFixed(2)}
+function build(segs,preset,format,title,summary){
+ const e={project:{title,target:format,aspect:/shorts|reels/.test(format)?'9:16':'16:9'},summary,
+  segments:segs.map((s,i)=>({id:'seg_'+(i+1),sourceStart:+s.start.toFixed(2),sourceEnd:+s.end.toFixed(2),operation:preset==='punch'&&i%2?'zoom':'keep',transition:'cut'})),captions:[]};
+ e.captions=e.segments.map((s,i)=>({start:s.sourceStart,end:s.sourceEnd,text:'Segment '+(i+1)}));retime(e);return e}
+async function analyze(file,o,log){
+ const title=file.name.replace(/\.[^.]+$/,'');let buf;
+ try{const ac=new(window.AudioContext||window.webkitAudioContext)();try{buf=await ac.decodeAudioData(await file.arrayBuffer())}finally{ac.close()}}
+ catch(e){log('No decodable audio track — keeping the full clip.');const d=S.meta?.duration||1;return build([{start:0,end:d}],o.preset,o.format,title,'No audio could be analysed. Full clip kept; trim manually in the Workspace.')}
+ log('Decoded audio: '+buf.duration.toFixed(1)+'s @ '+buf.sampleRate+'Hz');
+ const d=buf.getChannelData(0),sr=buf.sampleRate,total=buf.duration,W=.04,ws=Math.floor(sr*W),n=Math.floor(d.length/ws),en=new Float32Array(n),v=new Uint8Array(n);
+ for(let i=0;i<n;i++){let q=0;for(let k=0,off=i*ws;k<ws;k++){const x=d[off+k];q+=x*x}const r=Math.sqrt(q/ws);en[i]=r>1e-5?20*Math.log10(r):-100;v[i]=en[i]>o.db?1:0;if(i%2000===0)await new Promise(r=>setTimeout(r))}
+ const mp=Math.floor(o.pause/W);let sc=0;
+ for(let i=0;i<n;i++){if(!v[i])sc++;else{if(sc>0&&sc<mp)for(let f=i-sc;f<i;f++)v[f]=1;sc=0}}
+ let segs=[],on=false,st=0;const pad=.12;
+ for(let i=0;i<=n;i++){const t=i*W,vv=i<n&&v[i];
+  if(vv&&!on){on=true;st=Math.max(0,t-pad)}
+  else if(!vv&&on){on=false;const e=Math.min(total,t+pad);if(e-st>.3)segs.push({start:st,end:e})}}
+ const m=[];for(const s of segs){const l=m[m.length-1];if(l&&s.start<=l.end)l.end=Math.max(l.end,s.end);else m.push({...s})}segs=m;
+ log('Found '+segs.length+' speech segments (padding merged, no overlaps).');
+ if(o.preset==='viral'&&segs.length>3){
+  const r=segs.map(s=>{let q=0;const a=Math.floor(s.start/W),b=Math.max(a+1,Math.min(n,Math.floor(s.end/W)));for(let w=a;w<b;w++)q+=en[w];return{...s,e:q/(b-a)}}).sort((a,b)=>b.e-a.e);
+  let acc=0,ch=[];for(const s of r){const du=s.end-s.start;if(acc+du<=50){ch.push(s);acc+=du}}
+  if(!ch.length)ch=[{start:r[0].start,end:Math.min(r[0].end,r[0].start+50)}];
+  segs=ch.sort((a,b)=>a.start-b.start);log('Picked '+segs.length+' high-energy clips.')}
+ if(!segs.length){log('No speech detected at this threshold — keeping the full clip.');segs=[{start:0,end:total}]}
+ return build(segs,o.preset,o.format,title,'Removed silent pauses and kept '+segs.length+' segments.')}
+
+/* ---------- shared frame painter (preview + export) ---------- */
+function paint(ctx,v,W,H,seg,t,cap){
+ ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+ const z=seg&&seg.operation==='zoom'?1.15:1,sw=v.videoWidth/z,sh=v.videoHeight/z,sx=(v.videoWidth-sw)/2,sy=(v.videoHeight-sh)/2,k=Math.min(W/sw,H/sh),dw=sw*k,dh=sh*k;
+ let a=1;if(seg&&seg.transition==='fade')a=Math.max(0,Math.min(1,(t-seg.sourceStart)/.15,(seg.sourceEnd-t)/.15));
+ ctx.globalAlpha=a;ctx.drawImage(v,sx,sy,sw,sh,(W-dw)/2,(H-dh)/2,dw,dh);ctx.globalAlpha=1;
+ if(cap){const fs=Math.round(S.style.size*H/720);ctx.font='800 '+fs+'px '+S.style.font;ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=fs/5;ctx.strokeStyle='#000';ctx.fillStyle=S.style.color;ctx.strokeText(cap,W/2,H*.88,W*.9);ctx.fillText(cap,W/2,H*.88,W*.9)}}
+const segAt=t=>S.proj?.edl?.segments.find(s=>t>=s.sourceStart&&t<s.sourceEnd);
+const capAt=t=>S.proj?.edl?.captions.find(c=>t>=c.start&&t<c.end);
+
+/* ---------- ingest ---------- */
+function setMedia(file){
+ if(S.url)URL.revokeObjectURL(S.url);S.url=URL.createObjectURL(file);S.file=file;
+ $('sv').src=S.url;$('wv').src=S.url;stop();S.sel=-1}
+function ingest(file){
+ if(!file||!/^video\//.test(file.type)&&!/\.(mp4|webm|mov|m4v)$/i.test(file.name))return toast('Please choose a video file.','warn');
+ setMedia(file);const v=$('sv');
+ v.onerror=()=>toast('This video could not be decoded by your browser.','error');
+ v.onloadedmetadata=()=>{
+  S.meta={name:file.name,size:file.size,duration:v.duration,w:v.videoWidth,h:v.videoHeight};
+  $('meta').textContent=file.name+' · '+(file.size/1048576).toFixed(1)+' MB · '+v.videoWidth+'x'+v.videoHeight+' · '+fmt(v.duration);
+  S.proj={id:'proj_'+Date.now(),title:file.name.replace(/\.[^.]+$/,''),blob:file,meta:S.meta,edl:null};
+  S.pending=null;$('review').style.display='none';renderAll();toast('Loaded "'+file.name+'"','success')}}
+
+/* ---------- director UI ---------- */
+function log(m){const l=$('log'),d=document.createElement('div');d.textContent='['+new Date().toLocaleTimeString()+'] '+m;l.appendChild(d);l.scrollTop=l.scrollHeight}
+async function runDirector(){
+ if(!S.file||!S.proj)return toast('Upload a video first.','warn');
+ $('run').disabled=true;$('pbox').style.display='block';$('review').style.display='none';$('log').innerHTML='';$('pbar').style.width='25%';$('ppct').textContent='25%';$('ptxt').textContent='Analysing audio...';
+ try{
+  const e=await analyze(S.file,{preset:$('preset').value,db:+$('db').value,pause:+$('pause').value,format:$('fmt').value},log);
+  S.pending=e;$('pbar').style.width='100%';$('ppct').textContent='100%';$('ptxt').textContent='Done';
+  $('rmet').textContent=e.segments.length+' cuts · ~'+e.project.duration+'s';$('rsum').textContent=e.summary;$('review').style.display='block';
+ }catch(err){log('Error: '+err.message);toast('Analysis failed: '+err.message,'error')}
+ finally{$('run').disabled=false}}
+async function approve(){
+ if(!S.pending||!S.proj)return;S.proj.edl=S.pending;S.pending=null;S.sel=-1;
+ if(!(await DB.put(S.proj)))toast('Could not save locally (storage unavailable or full). Editing still works.','warn');
+ renderAll();refreshDash();$('workspace').scrollIntoView();toast('Plan loaded on the timeline.','success')}
+
+/* ---------- workspace ---------- */
+function stop(){playing=false;cancelAnimationFrame(raf);const v=$('wv');v.pause();$('play').textContent='Play'}
+function tick(){
+ const segs=S.proj?.edl?.segments;if(!segs?.length)return;const v=$('wv'),t=v.currentTime;
+ if(segs.some(s=>t>=s.sourceStart&&t<s.sourceEnd))return;
+ const nx=segs.find(s=>s.sourceStart>t);if(nx)v.currentTime=nx.sourceStart;else stop()}
+function loop(){if(!playing)return;tick();draw();raf=requestAnimationFrame(loop)}
+function draw(){
+ const v=$('wv');if(!v.videoWidth)return;const c=$('cv'),sc=Math.min(1,1280/v.videoWidth),W=Math.round(v.videoWidth*sc),H=Math.round(v.videoHeight*sc);
+ if(c.width!==W||c.height!==H){c.width=W;c.height=H}
+ const t=v.currentTime;paint(c.getContext('2d'),v,W,H,segAt(t),t,capAt(t)?.text);
+ $('ph').style.left=Math.min(100,t/(v.duration||1)*100)+'%';$('tc').textContent=fmt(t)}
+function sortRetime(){const e=S.proj.edl,cur=e.segments[S.sel];e.segments.sort((a,b)=>a.sourceStart-b.sourceStart);S.sel=cur?e.segments.indexOf(cur):-1;e.segments.forEach((s,i)=>s.id='seg_'+(i+1));retime(e)}
+function select(i){
+ S.sel=i;const s=S.proj.edl.segments[i];$('wv').currentTime=s.sourceStart;
+ $('itl').textContent='Segment '+(i+1);$('is').value=s.sourceStart;$('ie').value=s.sourceEnd;$('iop').value=s.operation;$('itr').value=s.transition||'cut';renderTimeline()}
+function renderTimeline(){
+ const e=S.proj?.edl,dur=S.meta?.duration||1,lv=$('lv'),lc=$('lc'),L=$('edl');lv.innerHTML=lc.innerHTML=L.innerHTML='';if(!e)return;
+ e.segments.forEach((s,i)=>{
+  const d=document.createElement('div');d.className='seg'+(i===S.sel?' sel':'');d.style.left=s.sourceStart/dur*100+'%';d.style.width=(s.sourceEnd-s.sourceStart)/dur*100+'%';d.textContent=(i+1)+(s.operation==='zoom'?' ⤢':'');
+  d.onclick=ev=>{ev.stopPropagation();select(i)};lv.appendChild(d);
+  const r=document.createElement('div');r.className='item'+(i===S.sel?' sel':'');r.innerHTML='<span>#'+(i+1)+' '+s.sourceStart+'–'+s.sourceEnd+'s</span><span class="mut">'+esc(s.operation)+'</span>';r.onclick=()=>select(i);L.appendChild(r)});
+ e.captions.forEach(c=>{const d=document.createElement('div');d.className='seg cap';d.style.left=c.start/dur*100+'%';d.style.width=Math.max(.5,(c.end-c.start)/dur*100)+'%';d.textContent=c.text;lc.appendChild(d)})}
+function renderCaps(){
+ const L=$('caps'),c=S.proj?.edl?.captions;if(!c?.length){L.innerHTML='<p class="sub">No captions yet.</p>';return}L.innerHTML='';
+ c.forEach((x,i)=>{const r=document.createElement('div');r.className='row';r.innerHTML='<input class="in" value="'+esc(x.text)+'"><input class="in n" type="number" step=".1" value="'+x.start+'"><input class="in n" type="number" step=".1" value="'+x.end+'"><button class="btn bs dan">✕</button>';
+  const [a,b,d,k]=r.querySelectorAll('input,button');
+  a.oninput=()=>{x.text=a.value;renderTimeline();draw()};b.onchange=()=>{x.start=Math.max(0,+b.value||0);renderTimeline()};d.onchange=()=>{x.end=Math.max(x.start+.1,+d.value||0);renderTimeline()};
+  k.onclick=()=>{c.splice(i,1);renderCaps();renderTimeline();draw()};L.appendChild(r)})}
+function renderAll(){
+ const p=S.proj;$('wt').textContent='Workspace: '+(p?.title||'Untitled');
+ $('wd').textContent=p?(p.edl?p.edl.segments.length+' cuts · ~'+p.edl.project.duration+'s output':'Run the Auto Director to generate cuts'):'Upload a video and run the Auto Director first.';
+ renderTimeline();renderCaps();styleSample();if($('wv').readyState>=2)draw()}
+function applySeg(){
+ const e=S.proj?.edl,s=e?.segments[S.sel];if(!s)return toast('Select a segment first.','warn');
+ const a=+$('is').value,b=+$('ie').value,dur=S.meta?.duration||Infinity;
+ if(!(a>=0&&b>a&&b<=dur+.01))return toast('Invalid range (end must be after start, within the video).','error');
+ if(e.segments.some((o,i)=>i!==S.sel&&a<o.sourceEnd&&b>o.sourceStart))return toast('Segment would overlap another one.','error');
+ s.sourceStart=+a.toFixed(2);s.sourceEnd=+Math.min(b,dur).toFixed(2);s.operation=$('iop').value;s.transition=$('itr').value;sortRetime();select(S.sel);renderAll();toast('Segment updated.','success')}
+function splitSeg(){
+ const e=S.proj?.edl;if(!e)return toast('No cut plan yet.','warn');const t=$('wv').currentTime,i=e.segments.findIndex(s=>t>s.sourceStart+.1&&t<s.sourceEnd-.1);
+ if(i<0)return toast('Move the playhead inside a segment (not at its edge).','warn');
+ const s=e.segments[i],n={...s,sourceStart:+t.toFixed(2)};s.sourceEnd=+t.toFixed(2);e.segments.splice(i+1,0,n);S.sel=i;sortRetime();renderAll();toast('Split at '+t.toFixed(2)+'s','success')}
+function delSeg(){
+ const e=S.proj?.edl;if(!e||S.sel<0)return toast('Select a segment first.','warn');
+ if(e.segments.length<2)return toast('Keep at least one segment.','warn');e.segments.splice(S.sel,1);S.sel=-1;retime(e);$('itl').textContent='No segment selected';renderAll()}
+
+/* ---------- subtitles ---------- */
+function styleSample(){const s=S.style,p=$('sp');p.style.fontFamily=s.font;p.style.fontSize=Math.round(s.size*.7)+'px';p.style.color=s.color;p.style.webkitTextStroke='1px #000';$('spa').style.color=s.accent}
+function readStyle(){S.style={font:$('sf').value,size:Math.max(14,Math.min(90,+$('ss').value||34)),color:$('sc').value,accent:$('sa').value};styleSample();draw()}
+
+/* ---------- export ---------- */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const seek=(v,t)=>new Promise(r=>{let d=0;const f=()=>{if(!d){d=1;v.removeEventListener('seeked',f);r()}};v.addEventListener('seeked',f);setTimeout(f,1500);v.currentTime=Math.min(t,Math.max(0,v.duration-.001))});
+async function exportVideo(){
+ const edl=S.proj?.edl;if(!S.file||!edl?.segments.length)return toast('Generate and approve a cut plan first.','warn');
+ if(!window.VideoEncoder||!window.Mp4Muxer)return toast('Export needs WebCodecs: use the latest Chrome or Edge.','error');
+ stop();const btn=$('xgo');btn.disabled=true;$('xp').style.display='block';$('xok').style.display='none';
+ const fps=30,mic=Math.round(1e6/fps),burn=$('xsub').value==='burn',base=$('xres').value==='1080'?1080:720,asp=$('xasp').value;let url;
+ try{
+  const v=document.createElement('video');v.muted=true;v.playsInline=true;url=URL.createObjectURL(S.file);v.src=url;
+  await new Promise((r,j)=>{v.onloadedmetadata=r;v.onerror=()=>j(new Error('Video load failed'))});
+  const ra=asp==='9:16'?9/16:asp==='16:9'?16/9:v.videoWidth/v.videoHeight;let W,H;
+  if(ra>=1){H=base;W=Math.round(base*ra)}else{W=base;H=Math.round(base/ra)}W&=~1;H&=~1;
+  const big=W*H>1280*720,vc={codec:big?'avc1.640028':'avc1.64001f',width:W,height:H,bitrate:big?6e6:3e6,framerate:fps};
+  if(!(await VideoEncoder.isConfigSupported(vc)).supported)throw new Error('H.264 is not supported at this size on this device');
+  let ab=null,acfg=null;
+  if(window.AudioEncoder&&window.AudioData){try{const ac=new AudioContext();try{ab=await ac.decodeAudioData(await S.file.arrayBuffer())}finally{ac.close()}}catch(e){ab=null}}
+  if(ab){acfg={codec:'mp4a.40.2',numberOfChannels:Math.min(2,ab.numberOfChannels),sampleRate:ab.sampleRate,bitrate:128e3};
+   if(!(await AudioEncoder.isConfigSupported(acfg)).supported){ab=null;toast('AAC not supported here: exporting without audio.','warn')}}
+  const ch=ab?acfg.numberOfChannels:0;
+  const mux=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:W,height:H},...(ab?{audio:{codec:'aac',numberOfChannels:ch,sampleRate:ab.sampleRate}}:{}),fastStart:'in-memory'});
+  let err=null;const ve=new VideoEncoder({output:(c,m)=>mux.addVideoChunk(c,m),error:e=>err=e});ve.configure(vc);
+  let ae=null;if(ab){ae=new AudioEncoder({output:(c,m)=>mux.addAudioChunk(c,m),error:e=>err=e});ae.configure(acfg)}
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');
+  const total=edl.segments.reduce((a,s)=>a+Math.round((s.sourceEnd-s.sourceStart)*fps),0)||1;let fc=0,ao=0;
+  for(const seg of edl.segments){
+   const frames=Math.max(1,Math.round((seg.sourceEnd-seg.sourceStart)*fps));
+   for(let f=0;f<frames;f++){
+    if(err)throw err;const t=seg.sourceStart+f/fps;await seek(v,t);
+    paint(ctx,v,W,H,seg,t,burn?edl.captions.find(c=>t>=c.start&&t<c.end)?.text:null);
+    while(ve.encodeQueueSize>8)await sleep(5);
+    const vf=new VideoFrame(cv,{timestamp:fc*mic,duration:mic});ve.encode(vf,{keyFrame:fc%60===0});vf.close();fc++;
+    const p=Math.min(99,Math.round(fc/total*100));$('xbar').style.width=p+'%';$('xpct').textContent=p+'%'}
+   if(ab){const sr=ab.sampleRate,a=Math.floor(seg.sourceStart*sr),b=Math.min(ab.length,Math.floor(seg.sourceEnd*sr));
+    for(let p=a;p<b;p+=4096){const n=Math.min(4096,b-p),data=new Float32Array(n*ch);
+     for(let c=0;c<ch;c++)data.set(ab.getChannelData(c).subarray(p,p+n),c*n);
+     const ad=new AudioData({format:'f32-planar',sampleRate:sr,numberOfFrames:n,numberOfChannels:ch,timestamp:Math.round(ao/sr*1e6),data});ae.encode(ad);ad.close();ao+=n}}}
+  await ve.flush();ve.close();if(ae){await ae.flush();ae.close()}if(err)throw err;mux.finalize();
+  if(xurl)URL.revokeObjectURL(xurl);xurl=URL.createObjectURL(new Blob([mux.target.buffer],{type:'video/mp4'}));
+  $('xdl').href=xurl;$('xdl').download=(S.proj.title||'autoedit')+'_edit.mp4';$('xp').style.display='none';$('xok').style.display='block';toast('Render complete!','success');
+ }catch(e){toast('Render error: '+e.message,'error');$('xp').style.display='none'}
+ finally{if(url)URL.revokeObjectURL(url);btn.disabled=false}}
+
+/* ---------- dashboard ---------- */
+async function refreshDash(){
+ const L=$('plist'),ps=await DB.all();L.innerHTML='';
+ $('stat').textContent='('+ps.length+' · '+(ps.reduce((a,p)=>a+(p.blob?.size||0),0)/1048576).toFixed(1)+' MB)';
+ if(!ps.length){L.innerHTML='<p class="sub">'+(db?'No saved projects yet. Run the Auto Director and approve a plan to save one.':'Local storage is unavailable in this browser mode: projects will not be saved.')+'</p>';return}
+ ps.sort((a,b)=>b.id.localeCompare(a.id)).forEach(p=>{const d=document.createElement('div');d.className='card';
+  d.innerHTML='<b>'+esc(p.title)+'</b><div class="mut" style="font-size:12px;margin:4px 0 10px">'+(p.edl?p.edl.segments.length+' cuts':'no plan')+' · '+((p.blob?.size||0)/1048576).toFixed(1)+' MB</div><div class="row"><button class="btn bs pri" style="flex:1">Open</button><button class="btn bs dan">Delete</button></div>';
+  const [o,x]=d.querySelectorAll('button');
+  o.onclick=()=>{if(!p.blob)return toast('Project media is missing.','error');S.proj=p;S.meta=p.meta;setMedia(p.blob);$('meta').textContent=p.title;$('review').style.display='none';
+   $('wv').onloadeddata=()=>{renderAll();draw()};renderAll();$('workspace').scrollIntoView()};
+  x.onclick=async()=>{await DB.del(p.id);if(S.proj?.id===p.id)S.proj.id='proj_'+Date.now();refreshDash()};L.appendChild(d)})}
+
+/* ---------- boot ---------- */
+window.addEventListener('beforeunload',()=>{if(S.url)URL.revokeObjectURL(S.url);if(xurl)URL.revokeObjectURL(xurl)});
+window.addEventListener('DOMContentLoaded',async()=>{
+ await DB.init();if(!db)toast('Storage unavailable (private mode?). Projects will not be saved.','warn');
+ const dz=$('drop'),fi=$('file');dz.onclick=()=>fi.click();dz.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click()}};
+ fi.onchange=()=>{ingest(fi.files[0]);fi.value=''};
+ dz.ondragover=e=>{e.preventDefault();dz.classList.add('ov')};dz.ondragleave=()=>dz.classList.remove('ov');dz.ondrop=e=>{e.preventDefault();dz.classList.remove('ov');ingest(e.dataTransfer.files[0])};
+ $('run').onclick=runDirector;$('ok').onclick=approve;$('no').onclick=()=>{S.pending=null;$('review').style.display='none'};
+ const wv=$('wv');wv.addEventListener('seeked',()=>{if(!playing)draw()});wv.addEventListener('loadeddata',draw);wv.addEventListener('ended',stop);
+ $('play').onclick=()=>{if(!wv.src)return toast('Load a video first.','warn');
+  if(playing)return stop();const sg=S.proj?.edl?.segments;
+  if(sg?.length&&!sg.some(s=>wv.currentTime>=s.sourceStart&&wv.currentTime<s.sourceEnd))wv.currentTime=sg[0].sourceStart;
+  wv.play().catch(()=>{});playing=true;$('play').textContent='Pause';cancelAnimationFrame(raf);loop()};
+ $('lanes').onclick=e=>{if(!wv.duration)return;const r=$('lanes').getBoundingClientRect();wv.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*wv.duration};
+ $('split').onclick=splitSeg;$('apply').onclick=applySeg;$('del').onclick=delSeg;
+ $('save').onclick=async()=>{if(!S.proj)return toast('Nothing to save.','warn');const ok=await DB.put(S.proj);toast(ok?'Saved.':'Could not save locally.',ok?'success':'error');refreshDash()};
+ ['sf','ss','sc','sa'].forEach(i=>$(i).addEventListener('input',readStyle));
+ $('addcap').onclick=()=>{const e=S.proj?.edl;if(!e)return toast('Generate a cut plan first.','warn');const t=+wv.currentTime.toFixed(1);e.captions.push({start:t,end:+(t+2.5).toFixed(1),text:'New line'});e.captions.sort((a,b)=>a.start-b.start);renderCaps();renderTimeline()};
+ $('xgo').onclick=exportVideo;
+ $('purge').onclick=async()=>{if(!confirm('Delete ALL saved projects from this browser?'))return;await DB.clear();refreshDash();toast('Local projects deleted.','info')};
+ renderAll();refreshDash()});
+</script></body></html>
