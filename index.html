@@ -1,299 +1,1310 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AUTOEDIT AI — Local Video Editor</title>
-<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"></script>
-<style>
-:root{--bg:#07090e;--s:#0e121b;--e:#151a27;--b:rgba(255,255,255,.1);--ac:#6366f1;--g:#10b981;--r:#f43f5e;--c:#06b6d4;--t:#f8fafc;--m:#94a3b8;color-scheme:dark}
-*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--t);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-nav{position:sticky;top:0;z-index:20;display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:rgba(14,18,27,.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--b)}
-nav b{margin-right:12px;letter-spacing:.5px;background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;background-clip:text;color:transparent}
-nav a{color:var(--m);text-decoration:none;padding:6px 10px;border-radius:8px;font-size:13px}nav a:hover{background:var(--e);color:var(--t)}
-section{padding:30px 18px;max-width:1200px;margin:auto;scroll-margin-top:56px;border-bottom:1px solid var(--b)}
-h2{font-size:22px}.sub{color:var(--m);margin:2px 0 16px;font-size:13px}h3{font-size:15px;margin-bottom:12px}
-.card{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:18px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.ws{display:grid;grid-template-columns:2fr 1fr;gap:16px}
-.g3{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-@media(max-width:800px){.g2,.ws{grid-template-columns:1fr}}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;min-height:38px;border-radius:8px;border:1px solid var(--b);background:var(--e);color:var(--t);font-size:13px;font-weight:600;cursor:pointer}
-.btn:hover{border-color:rgba(255,255,255,.3)}.btn:disabled{opacity:.5;cursor:not-allowed}.bs{min-height:30px;padding:4px 10px;font-size:12px}
-.pri{background:linear-gradient(135deg,#6366f1,#8b5cf6 50%,#06b6d4);border:0}.dan{color:var(--r);border-color:rgba(244,63,94,.4)}.suc{color:var(--g);border-color:rgba(16,185,129,.4)}
-.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}.fg label{font-size:12px;font-weight:600;color:var(--m)}
-.in{width:100%;background:var(--e);border:1px solid var(--b);color:var(--t);padding:8px 10px;border-radius:8px;font-size:13px;outline:none}.in:focus{border-color:var(--ac)}
-input[type=color].in{height:38px;padding:3px}
-.drop{border:2px dashed rgba(99,102,241,.45);border-radius:14px;padding:30px 14px;text-align:center;cursor:pointer}.drop:hover,.drop.ov{background:rgba(99,102,241,.08)}
-.vp{background:#000;border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:200px;overflow:hidden}
-.vp video,.vp canvas{width:100%;max-height:420px;object-fit:contain}
-.bar{height:6px;background:rgba(255,255,255,.08);border-radius:9px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6366f1,#06b6d4);transition:width .2s}
-.log{background:#05070b;border:1px solid var(--b);border-radius:8px;padding:10px;font:11.5px ui-monospace,Menlo,monospace;color:#cbd5e1;height:110px;overflow:auto}
-.box{background:var(--e);border:1px solid var(--b);border-radius:10px;padding:14px;margin-top:14px;display:none}
-.row{display:flex;gap:6px;align-items:center;margin-bottom:6px}.n{width:76px;flex:none}
-.lane{position:relative;height:38px;background:#090c12;border:1px solid var(--b);border-radius:8px;margin-bottom:8px;overflow:hidden}
-.seg{position:absolute;top:2px;bottom:2px;border-radius:5px;background:linear-gradient(90deg,#10b981,#06b6d4);font-size:10px;font-weight:700;padding:3px 5px;overflow:hidden;white-space:nowrap;cursor:pointer;border:1px solid rgba(255,255,255,.3)}
-.seg.sel{border:2px solid #fff}.cap{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
-#lanes{position:relative;cursor:pointer}#ph{position:absolute;top:0;bottom:0;width:2px;background:var(--r);z-index:5;pointer-events:none}
-.item{padding:6px 8px;background:var(--e);border-radius:6px;margin-bottom:5px;font-size:12px;cursor:pointer;display:flex;justify-content:space-between}.item.sel{outline:1px solid var(--ac)}
-#toasts{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px}
-.toast{background:var(--e);border:1px solid var(--b);border-left:4px solid var(--c);padding:10px 14px;border-radius:8px;max-width:340px;font-size:13px}.toast.error{border-left-color:var(--r)}.toast.warn{border-left-color:#f59e0b}.toast.success{border-left-color:var(--g)}
-.mono{font-family:ui-monospace,Menlo,monospace}.mut{color:var(--m)}
-</style></head><body>
-<nav><b>AUTOEDIT AI</b><a href="#dash">Dashboard</a><a href="#dir">Auto Director</a><a href="#workspace">Workspace</a><a href="#subs">Subtitles</a><a href="#exp">Export</a></nav>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="description" content="AUTOEDIT AI — 100% Client-Side Local & AI Autonomous Video Editor" />
+  <title>AUTOEDIT AI — Ultra 3D Autonomous Video Engine</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 
-<section id="dash"><h2>Dashboard</h2><p class="sub">100% local: videos are processed in your browser and never uploaded. No API key needed.</p>
-<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 style="margin:0">Saved projects <span class="mut" id="stat"></span></h3>
-<button class="btn bs dan" id="purge">Purge all data</button></div><div id="plist" class="g3"></div></div></section>
+  <!-- Pure JS MP4 Muxer for WebCodecs -->
+  <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"></script>
 
-<section id="dir"><h2>Auto Director</h2><p class="sub">Detects silence and dead air from the audio waveform, then builds a cut plan you can edit.</p>
-<div class="g2"><div>
-<div class="card" style="margin-bottom:16px"><h3>Source video</h3>
-<div class="drop" id="drop" tabindex="0"><input type="file" id="file" accept="video/*" hidden><b>Click or drag a video here</b><div class="mut" style="font-size:12px">MP4, WebM, MOV</div></div>
-<div id="meta" class="mut mono" style="font-size:12px;margin-top:10px"></div></div>
-<div class="card"><h3>Preview</h3><div class="vp"><video id="sv" controls playsinline></video></div></div></div>
-<div class="card"><h3>Local engine settings</h3>
-<div class="fg"><label>Preset</label><select class="in" id="preset"><option value="jumpcut">Smart Jumpcut: remove silent pauses</option><option value="viral">Viral Shorts: top high-energy clips (~50s)</option><option value="punch">Kinetic Vlog: jumpcut + punch-in zoom</option></select></div>
-<div class="g2"><div class="fg"><label>Silence threshold</label><select class="in" id="db"><option value="-35">Normal room (-35 dB)</option><option value="-42">Quiet studio (-42 dB)</option><option value="-28">Noisy (-28 dB)</option></select></div>
-<div class="fg"><label>Minimum pause to cut</label><select class="in" id="pause"><option value=".35">0.35s</option><option value=".5">0.50s</option><option value=".75">0.75s</option></select></div></div>
-<div class="fg"><label>Target format</label><select class="in" id="fmt"><option value="youtube-shorts">YouTube Shorts (9:16)</option><option value="instagram-reels">Instagram Reels (9:16)</option><option value="youtube-main">YouTube 16:9</option><option value="general">General</option></select></div>
-<button class="btn pri" id="run" style="width:100%;height:44px">Run Auto-Edit</button>
-<div class="box" id="pbox"><div class="row" style="justify-content:space-between"><b id="ptxt">Working...</b><span class="mono" id="ppct">0%</span></div><div class="bar"><i id="pbar"></i></div><div class="log" id="log"></div></div>
-<div class="box" id="review" style="border-color:rgba(16,185,129,.5)"><b>Cut plan ready</b> <span class="mono mut" id="rmet"></span><p class="mut" id="rsum" style="margin:6px 0 12px"></p>
-<div class="row"><button class="btn suc" id="ok" style="flex:1">Approve &amp; open Workspace</button><button class="btn dan" id="no">Reject</button></div></div>
-</div></div></section>
+  <style>
+    :root {
+      --bg-base: #04060a;
+      --bg-surface: rgba(13, 17, 28, 0.72);
+      --bg-surface-elevated: rgba(22, 28, 45, 0.82);
+      --bg-surface-active: #1e263d;
+      
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-medium: rgba(255, 255, 255, 0.16);
+      --border-glow: rgba(99, 102, 241, 0.5);
 
-<section id="workspace"><h2 id="wt">Workspace</h2><p class="sub" id="wd">Upload a video and run the Auto Director first.</p>
-<div class="ws"><div class="card"><div class="vp" style="min-height:300px"><canvas id="cv" width="640" height="360"></canvas><video id="wv" playsinline style="display:none"></video></div>
-<div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn bs" id="play">Play</button><button class="btn bs" id="split">Split at playhead</button><button class="btn bs" id="save">Save</button><button class="btn bs pri" onclick="document.getElementById('exp').scrollIntoView()">Export</button><span class="mono mut" id="tc" style="margin-left:auto">00:00.0</span></div></div>
-<div class="card"><h3>Segment inspector</h3><div class="mut" id="itl" style="font-size:12px;margin-bottom:8px">No segment selected</div>
-<div class="row"><div class="fg" style="margin:0"><label>Start (s)</label><input class="in mono" type="number" step=".1" min="0" id="is"></div><div class="fg" style="margin:0"><label>End (s)</label><input class="in mono" type="number" step=".1" min="0" id="ie"></div></div>
-<div class="row" style="margin-top:8px"><div class="fg" style="margin:0"><label>Operation</label><select class="in" id="iop"><option value="keep">Keep</option><option value="zoom">Punch-in zoom</option></select></div><div class="fg" style="margin:0"><label>Transition</label><select class="in" id="itr"><option value="cut">Cut</option><option value="fade">Fade</option></select></div></div>
-<div class="row" style="margin-top:10px"><button class="btn bs" id="apply" style="flex:1">Apply</button><button class="btn bs dan" id="del">Delete</button></div>
-<div id="edl" style="max-height:170px;overflow:auto;margin-top:10px"></div></div></div>
-<div class="card" style="margin-top:16px"><div id="lanes"><div id="ph"></div><div class="lane" id="lv"></div><div class="lane" id="lc"></div></div><div class="mut" style="font-size:11px">Top: video cuts · Bottom: captions · click to seek</div></div></section>
+      --neon-cyan: #06b6d4;
+      --neon-indigo: #6366f1;
+      --neon-violet: #a855f7;
+      --neon-emerald: #10b981;
+      --neon-rose: #f43f5e;
+      --neon-amber: #f59e0b;
 
-<section id="subs"><h2>Subtitles</h2><p class="sub">Captions are placeholder labels (&ldquo;Segment N&rdquo;): there is no speech-to-text in this build, so type your own text.</p>
-<div class="g2"><div><div class="card" style="margin-bottom:16px"><h3>Style</h3><div class="g2"><div class="fg"><label>Font</label><select class="in" id="sf"><option value="system-ui,sans-serif">System Sans</option><option value="ui-monospace,monospace">Monospace</option><option value="Impact,sans-serif">Impact</option></select></div><div class="fg"><label>Size</label><input class="in" type="number" id="ss" value="34" min="14" max="90"></div>
-<div class="fg"><label>Text color</label><input class="in" type="color" id="sc" value="#ffffff"></div><div class="fg"><label>Accent</label><input class="in" type="color" id="sa" value="#facc15"></div></div></div>
-<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Caption lines</h3><button class="btn bs" id="addcap">Add line at playhead</button></div><div id="caps" style="max-height:260px;overflow:auto;margin-top:10px"></div></div></div>
-<div class="card"><h3>Preview</h3><div class="vp" style="min-height:260px;align-items:flex-end;padding:20px"><div id="sp" style="font-weight:800;text-transform:uppercase;text-align:center">Make it <span id="spa">pop</span></div></div></div></div></section>
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #06b6d4 100%);
+      --accent-gradient-hover: linear-gradient(135deg, #4f46e5 0%, #9333ea 50%, #0891b2 100%);
+      --cyber-glow: 0 0 25px rgba(99, 102, 241, 0.35), 0 0 50px rgba(6, 182, 212, 0.2);
+      
+      --glass-panel: rgba(11, 15, 25, 0.75);
+      --glass-blur: blur(20px);
 
-<section id="exp"><h2>Export</h2><p class="sub">Renders your cuts to MP4 (H.264 + AAC) with WebCodecs, locally. Needs recent Chrome or Edge.</p>
-<div class="card" style="max-width:640px"><div class="g2"><div class="fg"><label>Resolution</label><select class="in" id="xres"><option value="1080">1080p</option><option value="720">720p (faster)</option></select></div>
-<div class="fg"><label>Aspect ratio (black bars, no stretching)</label><select class="in" id="xasp"><option value="src">Match source</option><option value="9:16">9:16 vertical</option><option value="16:9">16:9 landscape</option></select></div></div>
-<div class="fg"><label>Subtitles</label><select class="in" id="xsub"><option value="burn">Burn in</option><option value="none">None</option></select></div>
-<button class="btn pri" id="xgo" style="width:100%;height:44px">Render &amp; export MP4</button>
-<div class="box" id="xp"><div class="row" style="justify-content:space-between"><b>Rendering...</b><span class="mono" id="xpct">0%</span></div><div class="bar"><i id="xbar"></i></div></div>
-<div class="box" id="xok" style="border-color:rgba(16,185,129,.5)"><b style="color:var(--g)">Render complete</b><a class="btn suc" id="xdl" download="autoedit_export.mp4" style="width:100%;text-decoration:none;margin-top:10px">Download MP4</a></div></div></section>
-<div id="toasts"></div>
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
 
-<script>
-const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const toast=(m,t='info')=>{const d=document.createElement('div');d.className='toast '+t;d.textContent=m;$('toasts').appendChild(d);setTimeout(()=>d.remove(),4500)};
-const fmt=s=>{s=Math.max(0,s||0);return String(Math.floor(s/60)).padStart(2,'0')+':'+(s%60).toFixed(1).padStart(4,'0')};
-const S={file:null,meta:null,proj:null,sel:-1,url:null,pending:null,style:{size:34,font:'system-ui,sans-serif',color:'#ffffff',accent:'#facc15'}};
-let db=null,raf=0,playing=false,xurl=null;
+      --sidebar-width: 280px;
+      --header-height: 68px;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 22px;
+      --radius-xl: 28px;
+      --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-/* ---------- storage (safe if IndexedDB is unavailable) ---------- */
-const DB={
- init(){return new Promise(r=>{try{const q=indexedDB.open('AutoEditLocal',1);q.onupgradeneeded=e=>e.target.result.createObjectStore('p',{keyPath:'id'});q.onsuccess=e=>{db=e.target.result;r()};q.onerror=()=>r()}catch(e){r()}})},
- tx(m,f){return new Promise(r=>{if(!db)return r(null);try{const t=db.transaction('p',m),q=f(t.objectStore('p'));t.oncomplete=()=>r(q&&q.result!==undefined?q.result:true);t.onerror=t.onabort=()=>r(null)}catch(e){r(null)}})},
- all(){return this.tx('readonly',s=>s.getAll()).then(x=>Array.isArray(x)?x:[])},
- put(p){return this.tx('readwrite',s=>s.put(p))},del(id){return this.tx('readwrite',s=>s.delete(id))},clear(){return this.tx('readwrite',s=>s.clear())}
-};
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
 
-/* ---------- local audio analysis engine ---------- */
-function retime(e){let t=0;e.segments.forEach(s=>{s.timelineStart=+t.toFixed(2);t+=s.sourceEnd-s.sourceStart;s.timelineEnd=+t.toFixed(2)});e.project.duration=+t.toFixed(2)}
-function build(segs,preset,format,title,summary){
- const e={project:{title,target:format,aspect:/shorts|reels/.test(format)?'9:16':'16:9'},summary,
-  segments:segs.map((s,i)=>({id:'seg_'+(i+1),sourceStart:+s.start.toFixed(2),sourceEnd:+s.end.toFixed(2),operation:preset==='punch'&&i%2?'zoom':'keep',transition:'cut'})),captions:[]};
- e.captions=e.segments.map((s,i)=>({start:s.sourceStart,end:s.sourceEnd,text:'Segment '+(i+1)}));retime(e);return e}
-async function analyze(file,o,log){
- const title=file.name.replace(/\.[^.]+$/,'');let buf;
- try{const ac=new(window.AudioContext||window.webkitAudioContext)();try{buf=await ac.decodeAudioData(await file.arrayBuffer())}finally{ac.close()}}
- catch(e){log('No decodable audio track — keeping the full clip.');const d=S.meta?.duration||1;return build([{start:0,end:d}],o.preset,o.format,title,'No audio could be analysed. Full clip kept; trim manually in the Workspace.')}
- log('Decoded audio: '+buf.duration.toFixed(1)+'s @ '+buf.sampleRate+'Hz');
- const d=buf.getChannelData(0),sr=buf.sampleRate,total=buf.duration,W=.04,ws=Math.floor(sr*W),n=Math.floor(d.length/ws),en=new Float32Array(n),v=new Uint8Array(n);
- for(let i=0;i<n;i++){let q=0;for(let k=0,off=i*ws;k<ws;k++){const x=d[off+k];q+=x*x}const r=Math.sqrt(q/ws);en[i]=r>1e-5?20*Math.log10(r):-100;v[i]=en[i]>o.db?1:0;if(i%2000===0)await new Promise(r=>setTimeout(r))}
- const mp=Math.floor(o.pause/W);let sc=0;
- for(let i=0;i<n;i++){if(!v[i])sc++;else{if(sc>0&&sc<mp)for(let f=i-sc;f<i;f++)v[f]=1;sc=0}}
- let segs=[],on=false,st=0;const pad=.12;
- for(let i=0;i<=n;i++){const t=i*W,vv=i<n&&v[i];
-  if(vv&&!on){on=true;st=Math.max(0,t-pad)}
-  else if(!vv&&on){on=false;const e=Math.min(total,t+pad);if(e-st>.3)segs.push({start:st,end:e})}}
- const m=[];for(const s of segs){const l=m[m.length-1];if(l&&s.start<=l.end)l.end=Math.max(l.end,s.end);else m.push({...s})}segs=m;
- log('Found '+segs.length+' speech segments (padding merged, no overlaps).');
- if(o.preset==='viral'&&segs.length>3){
-  const r=segs.map(s=>{let q=0;const a=Math.floor(s.start/W),b=Math.max(a+1,Math.min(n,Math.floor(s.end/W)));for(let w=a;w<b;w++)q+=en[w];return{...s,e:q/(b-a)}}).sort((a,b)=>b.e-a.e);
-  let acc=0,ch=[];for(const s of r){const du=s.end-s.start;if(acc+du<=50){ch.push(s);acc+=du}}
-  if(!ch.length)ch=[{start:r[0].start,end:Math.min(r[0].end,r[0].start+50)}];
-  segs=ch.sort((a,b)=>a.start-b.start);log('Picked '+segs.length+' high-energy clips.')}
- if(!segs.length){log('No speech detected at this threshold — keeping the full clip.');segs=[{start:0,end:total}]}
- return build(segs,o.preset,o.format,title,'Removed silent pauses and kept '+segs.length+' segments.')}
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+    }
 
-/* ---------- shared frame painter (preview + export) ---------- */
-function paint(ctx,v,W,H,seg,t,cap){
- ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
- const z=seg&&seg.operation==='zoom'?1.15:1,sw=v.videoWidth/z,sh=v.videoHeight/z,sx=(v.videoWidth-sw)/2,sy=(v.videoHeight-sh)/2,k=Math.min(W/sw,H/sh),dw=sw*k,dh=sh*k;
- let a=1;if(seg&&seg.transition==='fade')a=Math.max(0,Math.min(1,(t-seg.sourceStart)/.15,(seg.sourceEnd-t)/.15));
- ctx.globalAlpha=a;ctx.drawImage(v,sx,sy,sw,sh,(W-dw)/2,(H-dh)/2,dw,dh);ctx.globalAlpha=1;
- if(cap){const fs=Math.round(S.style.size*H/720);ctx.font='800 '+fs+'px '+S.style.font;ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=fs/5;ctx.strokeStyle='#000';ctx.fillStyle=S.style.color;ctx.strokeText(cap,W/2,H*.88,W*.9);ctx.fillText(cap,W/2,H*.88,W*.9)}}
-const segAt=t=>S.proj?.edl?.segments.find(s=>t>=s.sourceStart&&t<s.sourceEnd);
-const capAt=t=>S.proj?.edl?.captions.find(c=>t>=c.start&&t<c.end);
+    code, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
 
-/* ---------- ingest ---------- */
-function setMedia(file){
- if(S.url)URL.revokeObjectURL(S.url);S.url=URL.createObjectURL(file);S.file=file;
- $('sv').src=S.url;$('wv').src=S.url;stop();S.sel=-1}
-function ingest(file){
- if(!file||!/^video\//.test(file.type)&&!/\.(mp4|webm|mov|m4v)$/i.test(file.name))return toast('Please choose a video file.','warn');
- setMedia(file);const v=$('sv');
- v.onerror=()=>toast('This video could not be decoded by your browser.','error');
- v.onloadedmetadata=()=>{
-  S.meta={name:file.name,size:file.size,duration:v.duration,w:v.videoWidth,h:v.videoHeight};
-  $('meta').textContent=file.name+' · '+(file.size/1048576).toFixed(1)+' MB · '+v.videoWidth+'x'+v.videoHeight+' · '+fmt(v.duration);
-  S.proj={id:'proj_'+Date.now(),title:file.name.replace(/\.[^.]+$/,''),blob:file,meta:S.meta,edl:null};
-  S.pending=null;$('review').style.display='none';renderAll();toast('Loaded "'+file.name+'"','success')}}
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--neon-cyan);
+    }
 
-/* ---------- director UI ---------- */
-function log(m){const l=$('log'),d=document.createElement('div');d.textContent='['+new Date().toLocaleTimeString()+'] '+m;l.appendChild(d);l.scrollTop=l.scrollHeight}
-async function runDirector(){
- if(!S.file||!S.proj)return toast('Upload a video first.','warn');
- $('run').disabled=true;$('pbox').style.display='block';$('review').style.display='none';$('log').innerHTML='';$('pbar').style.width='25%';$('ppct').textContent='25%';$('ptxt').textContent='Analysing audio...';
- try{
-  const e=await analyze(S.file,{preset:$('preset').value,db:+$('db').value,pause:+$('pause').value,format:$('fmt').value},log);
-  S.pending=e;$('pbar').style.width='100%';$('ppct').textContent='100%';$('ptxt').textContent='Done';
-  $('rmet').textContent=e.segments.length+' cuts · ~'+e.project.duration+'s';$('rsum').textContent=e.summary;$('review').style.display='block';
- }catch(err){log('Error: '+err.message);toast('Analysis failed: '+err.message,'error')}
- finally{$('run').disabled=false}}
-async function approve(){
- if(!S.pending||!S.proj)return;S.proj.edl=S.pending;S.pending=null;S.sel=-1;
- if(!(await DB.put(S.proj)))toast('Could not save locally (storage unavailable or full). Editing still works.','warn');
- renderAll();refreshDash();$('workspace').scrollIntoView();toast('Plan loaded on the timeline.','success')}
+    #app-container {
+      display: flex;
+      width: 100vw;
+      min-height: 100vh;
+      position: relative;
+    }
 
-/* ---------- workspace ---------- */
-function stop(){playing=false;cancelAnimationFrame(raf);const v=$('wv');v.pause();$('play').textContent='Play'}
-function tick(){
- const segs=S.proj?.edl?.segments;if(!segs?.length)return;const v=$('wv'),t=v.currentTime;
- if(segs.some(s=>t>=s.sourceStart&&t<s.sourceEnd))return;
- const nx=segs.find(s=>s.sourceStart>t);if(nx)v.currentTime=nx.sourceStart;else stop()}
-function loop(){if(!playing)return;tick();draw();raf=requestAnimationFrame(loop)}
-function draw(){
- const v=$('wv');if(!v.videoWidth)return;const c=$('cv'),sc=Math.min(1,1280/v.videoWidth),W=Math.round(v.videoWidth*sc),H=Math.round(v.videoHeight*sc);
- if(c.width!==W||c.height!==H){c.width=W;c.height=H}
- const t=v.currentTime;paint(c.getContext('2d'),v,W,H,segAt(t),t,capAt(t)?.text);
- $('ph').style.left=Math.min(100,t/(v.duration||1)*100)+'%';$('tc').textContent=fmt(t)}
-function sortRetime(){const e=S.proj.edl,cur=e.segments[S.sel];e.segments.sort((a,b)=>a.sourceStart-b.sourceStart);S.sel=cur?e.segments.indexOf(cur):-1;e.segments.forEach((s,i)=>s.id='seg_'+(i+1));retime(e)}
-function select(i){
- S.sel=i;const s=S.proj.edl.segments[i];$('wv').currentTime=s.sourceStart;
- $('itl').textContent='Segment '+(i+1);$('is').value=s.sourceStart;$('ie').value=s.sourceEnd;$('iop').value=s.operation;$('itr').value=s.transition||'cut';renderTimeline()}
-function renderTimeline(){
- const e=S.proj?.edl,dur=S.meta?.duration||1,lv=$('lv'),lc=$('lc'),L=$('edl');lv.innerHTML=lc.innerHTML=L.innerHTML='';if(!e)return;
- e.segments.forEach((s,i)=>{
-  const d=document.createElement('div');d.className='seg'+(i===S.sel?' sel':'');d.style.left=s.sourceStart/dur*100+'%';d.style.width=(s.sourceEnd-s.sourceStart)/dur*100+'%';d.textContent=(i+1)+(s.operation==='zoom'?' ⤢':'');
-  d.onclick=ev=>{ev.stopPropagation();select(i)};lv.appendChild(d);
-  const r=document.createElement('div');r.className='item'+(i===S.sel?' sel':'');r.innerHTML='<span>#'+(i+1)+' '+s.sourceStart+'–'+s.sourceEnd+'s</span><span class="mut">'+esc(s.operation)+'</span>';r.onclick=()=>select(i);L.appendChild(r)});
- e.captions.forEach(c=>{const d=document.createElement('div');d.className='seg cap';d.style.left=c.start/dur*100+'%';d.style.width=Math.max(.5,(c.end-c.start)/dur*100)+'%';d.textContent=c.text;lc.appendChild(d)})}
-function renderCaps(){
- const L=$('caps'),c=S.proj?.edl?.captions;if(!c?.length){L.innerHTML='<p class="sub">No captions yet.</p>';return}L.innerHTML='';
- c.forEach((x,i)=>{const r=document.createElement('div');r.className='row';r.innerHTML='<input class="in" value="'+esc(x.text)+'"><input class="in n" type="number" step=".1" value="'+x.start+'"><input class="in n" type="number" step=".1" value="'+x.end+'"><button class="btn bs dan">✕</button>';
-  const [a,b,d,k]=r.querySelectorAll('input,button');
-  a.oninput=()=>{x.text=a.value;renderTimeline();draw()};b.onchange=()=>{x.start=Math.max(0,+b.value||0);renderTimeline()};d.onchange=()=>{x.end=Math.max(x.start+.1,+d.value||0);renderTimeline()};
-  k.onclick=()=>{c.splice(i,1);renderCaps();renderTimeline();draw()};L.appendChild(r)})}
-function renderAll(){
- const p=S.proj;$('wt').textContent='Workspace: '+(p?.title||'Untitled');
- $('wd').textContent=p?(p.edl?p.edl.segments.length+' cuts · ~'+p.edl.project.duration+'s output':'Run the Auto Director to generate cuts'):'Upload a video and run the Auto Director first.';
- renderTimeline();renderCaps();styleSample();if($('wv').readyState>=2)draw()}
-function applySeg(){
- const e=S.proj?.edl,s=e?.segments[S.sel];if(!s)return toast('Select a segment first.','warn');
- const a=+$('is').value,b=+$('ie').value,dur=S.meta?.duration||Infinity;
- if(!(a>=0&&b>a&&b<=dur+.01))return toast('Invalid range (end must be after start, within the video).','error');
- if(e.segments.some((o,i)=>i!==S.sel&&a<o.sourceEnd&&b>o.sourceStart))return toast('Segment would overlap another one.','error');
- s.sourceStart=+a.toFixed(2);s.sourceEnd=+Math.min(b,dur).toFixed(2);s.operation=$('iop').value;s.transition=$('itr').value;sortRetime();select(S.sel);renderAll();toast('Segment updated.','success')}
-function splitSeg(){
- const e=S.proj?.edl;if(!e)return toast('No cut plan yet.','warn');const t=$('wv').currentTime,i=e.segments.findIndex(s=>t>s.sourceStart+.1&&t<s.sourceEnd-.1);
- if(i<0)return toast('Move the playhead inside a segment (not at its edge).','warn');
- const s=e.segments[i],n={...s,sourceStart:+t.toFixed(2)};s.sourceEnd=+t.toFixed(2);e.segments.splice(i+1,0,n);S.sel=i;sortRetime();renderAll();toast('Split at '+t.toFixed(2)+'s','success')}
-function delSeg(){
- const e=S.proj?.edl;if(!e||S.sel<0)return toast('Select a segment first.','warn');
- if(e.segments.length<2)return toast('Keep at least one segment.','warn');e.segments.splice(S.sel,1);S.sel=-1;retime(e);$('itl').textContent='No segment selected';renderAll()}
+    #sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 4, 8, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 38;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #sidebar-backdrop.active {
+      display: block;
+      opacity: 1;
+    }
 
-/* ---------- subtitles ---------- */
-function styleSample(){const s=S.style,p=$('sp');p.style.fontFamily=s.font;p.style.fontSize=Math.round(s.size*.7)+'px';p.style.color=s.color;p.style.webkitTextStroke='1px #000';$('spa').style.color=s.accent}
-function readStyle(){S.style={font:$('sf').value,size:Math.max(14,Math.min(90,+$('ss').value||34)),color:$('sc').value,accent:$('sa').value};styleSample();draw()}
+    /* 3D Glass Sidebar */
+    aside.sidebar {
+      width: var(--sidebar-width);
+      background: var(--glass-panel);
+      backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      transition: var(--transition-smooth);
+      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+    }
 
-/* ---------- export ---------- */
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const seek=(v,t)=>new Promise(r=>{let d=0;const f=()=>{if(!d){d=1;v.removeEventListener('seeked',f);r()}};v.addEventListener('seeked',f);setTimeout(f,1500);v.currentTime=Math.min(t,Math.max(0,v.duration-.001))});
-async function exportVideo(){
- const edl=S.proj?.edl;if(!S.file||!edl?.segments.length)return toast('Generate and approve a cut plan first.','warn');
- if(!window.VideoEncoder||!window.Mp4Muxer)return toast('Export needs WebCodecs: use the latest Chrome or Edge.','error');
- stop();const btn=$('xgo');btn.disabled=true;$('xp').style.display='block';$('xok').style.display='none';
- const fps=30,mic=Math.round(1e6/fps),burn=$('xsub').value==='burn',base=$('xres').value==='1080'?1080:720,asp=$('xasp').value;let url;
- try{
-  const v=document.createElement('video');v.muted=true;v.playsInline=true;url=URL.createObjectURL(S.file);v.src=url;
-  await new Promise((r,j)=>{v.onloadedmetadata=r;v.onerror=()=>j(new Error('Video load failed'))});
-  const ra=asp==='9:16'?9/16:asp==='16:9'?16/9:v.videoWidth/v.videoHeight;let W,H;
-  if(ra>=1){H=base;W=Math.round(base*ra)}else{W=base;H=Math.round(base/ra)}W&=~1;H&=~1;
-  const big=W*H>1280*720,vc={codec:big?'avc1.640028':'avc1.64001f',width:W,height:H,bitrate:big?6e6:3e6,framerate:fps};
-  if(!(await VideoEncoder.isConfigSupported(vc)).supported)throw new Error('H.264 is not supported at this size on this device');
-  let ab=null,acfg=null;
-  if(window.AudioEncoder&&window.AudioData){try{const ac=new AudioContext();try{ab=await ac.decodeAudioData(await S.file.arrayBuffer())}finally{ac.close()}}catch(e){ab=null}}
-  if(ab){acfg={codec:'mp4a.40.2',numberOfChannels:Math.min(2,ab.numberOfChannels),sampleRate:ab.sampleRate,bitrate:128e3};
-   if(!(await AudioEncoder.isConfigSupported(acfg)).supported){ab=null;toast('AAC not supported here: exporting without audio.','warn')}}
-  const ch=ab?acfg.numberOfChannels:0;
-  const mux=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:W,height:H},...(ab?{audio:{codec:'aac',numberOfChannels:ch,sampleRate:ab.sampleRate}}:{}),fastStart:'in-memory'});
-  let err=null;const ve=new VideoEncoder({output:(c,m)=>mux.addVideoChunk(c,m),error:e=>err=e});ve.configure(vc);
-  let ae=null;if(ab){ae=new AudioEncoder({output:(c,m)=>mux.addAudioChunk(c,m),error:e=>err=e});ae.configure(acfg)}
-  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');
-  const total=edl.segments.reduce((a,s)=>a+Math.round((s.sourceEnd-s.sourceStart)*fps),0)||1;let fc=0,ao=0;
-  for(const seg of edl.segments){
-   const frames=Math.max(1,Math.round((seg.sourceEnd-seg.sourceStart)*fps));
-   for(let f=0;f<frames;f++){
-    if(err)throw err;const t=seg.sourceStart+f/fps;await seek(v,t);
-    paint(ctx,v,W,H,seg,t,burn?edl.captions.find(c=>t>=c.start&&t<c.end)?.text:null);
-    while(ve.encodeQueueSize>8)await sleep(5);
-    const vf=new VideoFrame(cv,{timestamp:fc*mic,duration:mic});ve.encode(vf,{keyFrame:fc%60===0});vf.close();fc++;
-    const p=Math.min(99,Math.round(fc/total*100));$('xbar').style.width=p+'%';$('xpct').textContent=p+'%'}
-   if(ab){const sr=ab.sampleRate,a=Math.floor(seg.sourceStart*sr),b=Math.min(ab.length,Math.floor(seg.sourceEnd*sr));
-    for(let p=a;p<b;p+=4096){const n=Math.min(4096,b-p),data=new Float32Array(n*ch);
-     for(let c=0;c<ch;c++)data.set(ab.getChannelData(c).subarray(p,p+n),c*n);
-     const ad=new AudioData({format:'f32-planar',sampleRate:sr,numberOfFrames:n,numberOfChannels:ch,timestamp:Math.round(ao/sr*1e6),data});ae.encode(ad);ad.close();ao+=n}}}
-  await ve.flush();ve.close();if(ae){await ae.flush();ae.close()}if(err)throw err;mux.finalize();
-  if(xurl)URL.revokeObjectURL(xurl);xurl=URL.createObjectURL(new Blob([mux.target.buffer],{type:'video/mp4'}));
-  $('xdl').href=xurl;$('xdl').download=(S.proj.title||'autoedit')+'_edit.mp4';$('xp').style.display='none';$('xok').style.display='block';toast('Render complete!','success');
- }catch(e){toast('Render error: '+e.message,'error');$('xp').style.display='none'}
- finally{if(url)URL.revokeObjectURL(url);btn.disabled=false}}
+    .brand-header {
+      padding: 22px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
 
-/* ---------- dashboard ---------- */
-async function refreshDash(){
- const L=$('plist'),ps=await DB.all();L.innerHTML='';
- $('stat').textContent='('+ps.length+' · '+(ps.reduce((a,p)=>a+(p.blob?.size||0),0)/1048576).toFixed(1)+' MB)';
- if(!ps.length){L.innerHTML='<p class="sub">'+(db?'No saved projects yet. Run the Auto Director and approve a plan to save one.':'Local storage is unavailable in this browser mode: projects will not be saved.')+'</p>';return}
- ps.sort((a,b)=>b.id.localeCompare(a.id)).forEach(p=>{const d=document.createElement('div');d.className='card';
-  d.innerHTML='<b>'+esc(p.title)+'</b><div class="mut" style="font-size:12px;margin:4px 0 10px">'+(p.edl?p.edl.segments.length+' cuts':'no plan')+' · '+((p.blob?.size||0)/1048576).toFixed(1)+' MB</div><div class="row"><button class="btn bs pri" style="flex:1">Open</button><button class="btn bs dan">Delete</button></div>';
-  const [o,x]=d.querySelectorAll('button');
-  o.onclick=()=>{if(!p.blob)return toast('Project media is missing.','error');S.proj=p;S.meta=p.meta;setMedia(p.blob);$('meta').textContent=p.title;$('review').style.display='none';
-   $('wv').onloadeddata=()=>{renderAll();draw()};renderAll();$('workspace').scrollIntoView()};
-  x.onclick=async()=>{await DB.del(p.id);if(S.proj?.id===p.id)S.proj.id='proj_'+Date.now();refreshDash()};L.appendChild(d)})}
+    .brand-logo-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--accent-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 900;
+      font-size: 20px;
+      box-shadow: var(--cyber-glow);
+      transform: perspective(600px) rotateY(-8deg) rotateX(6deg);
+      transition: var(--transition-smooth);
+    }
 
-/* ---------- boot ---------- */
-window.addEventListener('beforeunload',()=>{if(S.url)URL.revokeObjectURL(S.url);if(xurl)URL.revokeObjectURL(xurl)});
-window.addEventListener('DOMContentLoaded',async()=>{
- await DB.init();if(!db)toast('Storage unavailable (private mode?). Projects will not be saved.','warn');
- const dz=$('drop'),fi=$('file');dz.onclick=()=>fi.click();dz.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click()}};
- fi.onchange=()=>{ingest(fi.files[0]);fi.value=''};
- dz.ondragover=e=>{e.preventDefault();dz.classList.add('ov')};dz.ondragleave=()=>dz.classList.remove('ov');dz.ondrop=e=>{e.preventDefault();dz.classList.remove('ov');ingest(e.dataTransfer.files[0])};
- $('run').onclick=runDirector;$('ok').onclick=approve;$('no').onclick=()=>{S.pending=null;$('review').style.display='none'};
- const wv=$('wv');wv.addEventListener('seeked',()=>{if(!playing)draw()});wv.addEventListener('loadeddata',draw);wv.addEventListener('ended',stop);
- $('play').onclick=()=>{if(!wv.src)return toast('Load a video first.','warn');
-  if(playing)return stop();const sg=S.proj?.edl?.segments;
-  if(sg?.length&&!sg.some(s=>wv.currentTime>=s.sourceStart&&wv.currentTime<s.sourceEnd))wv.currentTime=sg[0].sourceStart;
-  wv.play().catch(()=>{});playing=true;$('play').textContent='Pause';cancelAnimationFrame(raf);loop()};
- $('lanes').onclick=e=>{if(!wv.duration)return;const r=$('lanes').getBoundingClientRect();wv.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*wv.duration};
- $('split').onclick=splitSeg;$('apply').onclick=applySeg;$('del').onclick=delSeg;
- $('save').onclick=async()=>{if(!S.proj)return toast('Nothing to save.','warn');const ok=await DB.put(S.proj);toast(ok?'Saved.':'Could not save locally.',ok?'success':'error');refreshDash()};
- ['sf','ss','sc','sa'].forEach(i=>$(i).addEventListener('input',readStyle));
- $('addcap').onclick=()=>{const e=S.proj?.edl;if(!e)return toast('Generate a cut plan first.','warn');const t=+wv.currentTime.toFixed(1);e.captions.push({start:t,end:+(t+2.5).toFixed(1),text:'New line'});e.captions.sort((a,b)=>a.start-b.start);renderCaps();renderTimeline()};
- $('xgo').onclick=exportVideo;
- $('purge').onclick=async()=>{if(!confirm('Delete ALL saved projects from this browser?'))return;await DB.clear();refreshDash();toast('Local projects deleted.','info')};
- renderAll();refreshDash()});
-</script></body></html>
+    .brand-logo-badge:hover {
+      transform: perspective(600px) rotateY(0deg) scale(1.08);
+    }
+
+    .brand-title-wrap h1 {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title-wrap span.phase-tag {
+      font-size: 9px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--neon-emerald);
+      font-weight: 800;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .nav-group {
+      padding: 20px 14px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-group-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      padding: 8px 12px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: var(--transition-smooth);
+      transform: translateZ(0);
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+      transform: translateX(4px);
+    }
+
+    .nav-item.active {
+      color: #ffffff;
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.22) 0%, rgba(6, 182, 212, 0.12) 100%);
+      border: 1px solid var(--border-glow);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
+      transform: translateX(6px);
+    }
+
+    .nav-step-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-dim);
+    }
+    .nav-item.active .nav-step-badge {
+      background: var(--neon-cyan);
+      color: #000;
+      font-weight: 800;
+    }
+
+    .sidebar-footer {
+      padding: 18px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(4, 6, 10, 0.6);
+    }
+
+    .engine-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-surface-elevated);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--neon-emerald);
+      box-shadow: 0 0 12px var(--neon-emerald);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    main.main-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 100vh;
+    }
+
+    header.top-header {
+      height: var(--header-height);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      background: var(--glass-panel);
+      backdrop-filter: var(--glass-blur);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+
+    .header-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13.5px;
+      color: var(--text-dim);
+    }
+    .header-breadcrumb .current {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .scroll-section {
+      padding: 48px 40px;
+      border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+    }
+
+    .section-stage-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--neon-cyan);
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+    }
+
+    .section-header-wrap h2 {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+      background: linear-gradient(180deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .section-header-wrap p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    /* 3D Ultra Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: var(--transition-smooth);
+      outline: none;
+      user-select: none;
+      white-space: nowrap;
+      min-height: 40px;
+      position: relative;
+      overflow: hidden;
+      transform: perspective(400px) translateZ(0);
+    }
+
+    .btn:hover {
+      transform: perspective(400px) translateY(-2px);
+    }
+
+    .btn:active {
+      transform: perspective(400px) translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .btn-primary:hover {
+      background: var(--accent-gradient-hover);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-medium);
+      backdrop-filter: blur(10px);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-surface-active);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--neon-rose);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+    }
+    .btn-danger:hover {
+      background: var(--neon-rose);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(244, 63, 94, 0.5);
+    }
+
+    .btn-success {
+      background: rgba(16, 185, 129, 0.18);
+      color: var(--neon-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .btn-success:hover {
+      background: var(--neon-emerald);
+      color: #000;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+      font-weight: 800;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+    }
+    .btn-ghost:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 12px;
+      min-height: 34px;
+    }
+
+    /* 3D Tilting Cards */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      position: relative;
+      backdrop-filter: var(--glass-blur);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transition: var(--transition-smooth);
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+
+    /* Interactive 3D Dropzone */
+    .dropzone {
+      border: 2px dashed rgba(99, 102, 241, 0.45);
+      background: rgba(99, 102, 241, 0.04);
+      border-radius: var(--radius-lg);
+      padding: 42px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--neon-cyan);
+      background: rgba(6, 182, 212, 0.08);
+      box-shadow: var(--cyber-glow);
+      transform: scale(1.01);
+    }
+
+    .dropzone-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: var(--bg-surface-elevated);
+      color: var(--neon-cyan);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      border: 1px solid var(--border-medium);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .video-viewport {
+      background: #000;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 320px;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .video-viewport video, .video-viewport canvas {
+      width: 100%;
+      height: 100%;
+      max-height: 440px;
+      object-fit: contain;
+    }
+
+    /* 3D Timeline */
+    .timeline-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+    }
+
+    .timeline-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface-elevated);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .timeline-tracks {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #060910;
+      position: relative;
+      cursor: crosshair;
+      overflow-x: auto;
+    }
+
+    .timeline-playhead-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 110px;
+      width: 2px;
+      background: var(--neon-cyan);
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 0 12px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+      transition: left 0.04s linear;
+    }
+
+    .playhead-head {
+      position: absolute;
+      top: 0;
+      left: -6px;
+      width: 14px;
+      height: 14px;
+      background: var(--neon-cyan);
+      transform: rotate(45deg);
+      border-radius: 3px;
+      box-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    .timeline-track {
+      height: 56px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .track-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      width: 95px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 2;
+      flex-shrink: 0;
+    }
+
+    .track-body {
+      flex: 1;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .clip-cut-segment {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border: 1px solid rgba(255,255,255,0.3);
+      cursor: pointer;
+      user-select: none;
+      transition: var(--transition-smooth);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .clip-cut-segment:hover {
+      filter: brightness(1.2);
+      transform: scaleY(1.05);
+      border-color: #fff;
+    }
+    .clip-cut-segment.selected {
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 18px rgba(6, 182, 212, 0.8);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .input-field, .textarea-field, .select-field {
+      width: 100%;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-medium);
+      color: var(--text-main);
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      outline: none;
+      transition: var(--transition-smooth);
+    }
+
+    .input-field:focus, .textarea-field:focus, .select-field:focus {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.25);
+    }
+
+    .textarea-field {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .agent-pipeline-box {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin-top: 16px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 14px 0;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-gradient);
+      box-shadow: 0 0 15px var(--neon-cyan);
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .activity-log-stream {
+      background: #030508;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      height: 150px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .activity-log-line { display: flex; gap: 8px; }
+    .activity-log-time { color: var(--text-dim); flex-shrink: 0; }
+    .activity-log-msg { color: #cbd5e1; word-break: break-word; }
+    .activity-log-msg.highlight { color: var(--neon-cyan); font-weight: 700; }
+    .activity-log-msg.success { color: var(--neon-emerald); font-weight: 700; }
+    .activity-log-msg.error { color: var(--neon-rose); font-weight: 700; }
+
+    .mode-tab-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      border: 1px solid var(--border-medium);
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition-smooth);
+    }
+    .mode-tab-btn.active {
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.25) 0%, rgba(6, 182, 212, 0.25) 100%);
+      border-color: var(--neon-cyan);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+    }
+
+    /* 3D Glass Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 4, 8, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      width: 100%;
+      max-width: 620px;
+      background: rgba(14, 18, 30, 0.95);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(99, 102, 241, 0.2);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      transform: perspective(600px) rotateX(10deg) scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-overlay.active .modal-box {
+      transform: perspective(600px) rotateX(0deg) scale(1);
+    }
+    .modal-scroll-body {
+      overflow-y: auto;
+      flex: 1;
+      margin: 14px 0 24px;
+    }
+
+    #toast-shelf {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      min-width: 300px;
+      max-width: 400px;
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
+      background: rgba(18, 23, 38, 0.95);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-medium);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-main);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .toast-success { border-left: 4px solid var(--neon-emerald); }
+    .toast-error { border-left: 4px solid var(--neon-rose); }
+    .toast-info { border-left: 4px solid var(--neon-cyan); }
+    .toast-warning { border-left: 4px solid var(--neon-amber); }
+
+    .empty-state {
+      padding: 50px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 992px) {
+      aside.sidebar { position: fixed; left: -100%; box-shadow: 20px 0 50px rgba(0,0,0,0.8); }
+      aside.sidebar.mobile-open { left: 0; }
+      .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
+      .scroll-section { padding: 32px 20px; }
+    }
+    @media (max-width: 640px) {
+      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      header.top-header { padding: 0 18px; }
+      .scroll-section { padding: 26px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <div id="sidebar-backdrop"></div>
+
+    <!-- 3D Ultra Sidebar -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="brand-header">
+        <div class="brand-logo-badge">⚡</div>
+        <div class="brand-title-wrap">
+          <h1>AUTOEDIT <span class="phase-tag">ULTRA 3D</span></h1>
+        </div>
+      </div>
+
+      <nav class="nav-group" aria-label="Workflow Stages">
+        <div class="nav-group-title">WORKSPACE STAGES</div>
+        <a class="nav-item active" data-target="sec-dashboard" role="button" tabindex="0">
+          <i data-lucide="layout-grid"></i>
+          <span>Dashboard</span>
+          <span class="nav-step-badge">01</span>
+        </a>
+        <a class="nav-item" data-target="sec-ai-editor" role="button" tabindex="0">
+          <i data-lucide="zap"></i>
+          <span>Auto Director</span>
+          <span class="nav-step-badge">02</span>
+        </a>
+        <a class="nav-item" data-target="sec-editor-workspace" role="button" tabindex="0">
+          <i data-lucide="film"></i>
+          <span>Workspace</span>
+          <span class="nav-step-badge">03</span>
+        </a>
+        <a class="nav-item" data-target="sec-subtitle-studio" role="button" tabindex="0">
+          <i data-lucide="captions"></i>
+          <span>Subtitle Studio</span>
+          <span class="nav-step-badge">04</span>
+        </a>
+        <a class="nav-item" data-target="sec-export-center" role="button" tabindex="0">
+          <i data-lucide="download"></i>
+          <span>Export Center</span>
+          <span class="nav-step-badge">05</span>
+        </a>
+
+        <div class="nav-group-title" style="margin-top: 14px;">SYSTEM SETTINGS</div>
+        <a class="nav-item" data-target="sec-settings" role="button" tabindex="0">
+          <i data-lucide="settings-2"></i>
+          <span>Preferences</span>
+          <span class="nav-step-badge">06</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="engine-status-pill">
+          <div class="status-dot"></div>
+          <div>
+            <div style="font-size: 12px; font-weight: 800;" id="sidebar-engine-badge">Engine Ready</div>
+            <div style="font-size: 10px; color: var(--neon-emerald);" id="sidebar-autosave-badge">100% Client-Side Private</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-viewport" id="main-scroller">
+      
+      <header class="top-header">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button class="btn btn-ghost btn-sm" id="sidebar-toggle" aria-label="Toggle Navigation" style="display:none;">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="header-breadcrumb">
+            <span>AUTOEDIT</span>
+            <span>/</span>
+            <span class="current" id="header-breadcrumb-title">Dashboard Overview</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div id="key-badge-status" style="display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 5px 12px; border-radius: 999px; background: rgba(16, 185, 129, 0.12); color: var(--neon-emerald); border: 1px solid rgba(16, 185, 129, 0.3);">
+            <i data-lucide="zap" style="width: 13px; height: 13px;"></i>
+            <span>Local Engine Active (Free)</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-top-new-project">
+            <i data-lucide="plus"></i>
+            <span>New Cut</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- STAGE 1: DASHBOARD -->
+      <section id="sec-dashboard" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="layers" style="width:12px; height:12px;"></i> Stage 01</div>
+        <div class="section-header-wrap">
+          <h2>Dashboard Overview</h2>
+          <p>Next-gen client-side video editor powered by WebCodecs & Web Audio API waveform jumpcutting.</p>
+        </div>
+
+        <div class="grid-4" style="margin: 24px 0;">
+          <div class="card">
+            <div style="font-size: 12px; color: var(--text-dim); font-weight: 700;">SAVED PROJECTS</div>
+            <div style="font-size: 28px; font-weight: 900; margin-top: 8px; color: #fff;" id="stat-project-count">0</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 12px; color: var(--text-dim); font-weight: 700;">AUTONOMOUS ENGINE</div>
+            <div style="font-size: 15px; font-weight: 800; margin-top: 14px; color: var(--neon-emerald);">⚡ 100% Offline / Local</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 12px; color: var(--text-dim); font-weight: 700;">API DEPENDENCY</div>
+            <div style="font-size: 15px; font-weight: 800; margin-top: 14px; color: var(--neon-cyan);">Zero (Free Forever)</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 12px; color: var(--text-dim); font-weight: 700;">INDEXED-DB CACHE</div>
+            <div style="font-size: 16px; font-weight: 800; margin-top: 14px; color: #fff;" id="stat-storage-size">0.0 MB</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title"><i data-lucide="folder-kanban"></i> Local Projects Vault</div>
+              <div class="card-desc">Your video edits reside in browser storage. Nothing is uploaded to any cloud server.</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-projects">
+              <i data-lucide="rotate-cw"></i> Refresh
+            </button>
+          </div>
+
+          <div id="project-list-container" class="grid-3"></div>
+
+          <div id="projects-empty-state" class="empty-state">
+            <i data-lucide="film" style="width:48px; height:48px; opacity:0.4; margin-bottom:12px;"></i>
+            <h4 style="font-size: 16px; color: var(--text-muted); font-weight: 700;">No projects in memory</h4>
+            <p style="font-size: 13px; max-width: 360px; margin: 6px 0 18px;">Drop raw footage to instantly generate jumpcuts, kinetic subtitles, and vertical shorts.</p>
+            <button class="btn btn-primary btn-sm" id="btn-empty-upload-trigger">
+              <i data-lucide="upload"></i> Upload Raw Video
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 2: AUTO DIRECTOR -->
+      <section id="sec-ai-editor" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="zap" style="width:12px; height:12px;"></i> Stage 02</div>
+        <div class="section-header-wrap" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2>Autonomous Director Engine</h2>
+            <p>Smart Voice Activity Detection (VAD) automatically snips pauses, stutters, and dead air.</p>
+          </div>
+          <div>
+            <button class="btn btn-secondary btn-sm" id="btn-inspect-edl-modal" style="display: none;">
+              <i data-lucide="code-2"></i> Inspect EDL Schema
+            </button>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 24px;">
+          <div>
+            <div class="card" style="margin-bottom: 24px;">
+              <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="file-video"></i> Video Ingest</div>
+              
+              <div class="dropzone" id="video-dropzone" tabindex="0" role="button">
+                <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/quicktime" style="display:none;" />
+                <div class="dropzone-icon">
+                  <i data-lucide="upload-cloud" style="width: 28px; height: 28px;"></i>
+                </div>
+                <h4 style="font-size: 16px; font-weight: 800; margin-bottom: 6px;">Select or Drop Footage Here</h4>
+                <p style="font-size: 12px; color: var(--text-dim);">MP4, WebM, QuickTime MOV. Hardware decoding guaranteed.</p>
+              </div>
+
+              <div id="video-metadata-panel" style="display: none; margin-top: 18px; background: var(--bg-surface-elevated); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div style="font-size: 12px; font-weight: 800; color: var(--neon-cyan); margin-bottom: 10px;">SOURCE METADATA</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 12px;">
+                  <div><span style="color: var(--text-dim);">File:</span> <span id="meta-filename" style="font-weight:700;">-</span></div>
+                  <div><span style="color: var(--text-dim);">Size:</span> <span id="meta-filesize" style="font-weight:700;">-</span></div>
+                  <div><span style="color: var(--text-dim);">Resolution:</span> <span id="meta-resolution" style="font-weight:700;">-</span></div>
+                  <div><span style="color: var(--text-dim);">Duration:</span> <span id="meta-duration" style="font-weight:700;">-</span></div>
+                  <div><span style="color: var(--text-dim);">Aspect Ratio:</span> <span id="meta-ratio" style="font-weight:700;">-</span></div>
+                  <div><span style="color: var(--text-dim);">Codec:</span> <span id="meta-mime" style="font-weight:700;">-</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title" style="margin-bottom: 14px;"><i data-lucide="eye"></i> Source Preview</div>
+              <div class="video-viewport" id="ai-editor-player-box" style="min-height: 240px;">
+                <video id="ai-editor-video" controls style="max-height: 280px; display: none;"></video>
+                <div id="ai-editor-placeholder" style="color: var(--text-dim); font-size: 13px;">Upload video to preview</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                <button type="button" class="mode-tab-btn active" id="tab-mode-local">
+                  <i data-lucide="zap"></i>
+                  <span>Local Auto-Director (Free)</span>
+                </button>
+                <button type="button" class="mode-tab-btn" id="tab-mode-cloud">
+                  <i data-lucide="sparkles"></i>
+                  <span>Gemini Cloud (Optional)</span>
+                </button>
+              </div>
+
+              <!-- Local Panel -->
+              <div id="panel-local-director">
+                <div style="padding: 12px 16px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); margin-bottom: 18px; font-size: 12px; color: var(--neon-emerald); display: flex; align-items: center; gap: 10px;">
+                  <i data-lucide="shield-check" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
+                  <span><strong>Zero API Required:</strong> Audio energy detection executes entirely in local WebAssembly & Web Audio.</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="local-preset-select">Automated Cut Preset</label>
+                  <select class="select-field" id="local-preset-select">
+                    <option value="jumpcut">✂️ Fast Jumpcut: Strip Silence & Dead Air</option>
+                    <option value="viral-shorts">🔥 Viral Shorts: Extract Top 45s High-Energy Peak</option>
+                    <option value="punch-in">⚡ Dynamic Vlog: Cut Pauses + Auto Punch-In Zoom</option>
+                  </select>
+                </div>
+
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="local-silence-thresh">Noise Floor (dB)</label>
+                    <select class="select-field" id="local-silence-thresh">
+                      <option value="-35">Normal Room (-35 dB)</option>
+                      <option value="-42">Studio Mic (-42 dB)</option>
+                      <option value="-28">Noisy Environment (-28 dB)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="local-min-pause">Min Silence Cutout</label>
+                    <select class="select-field" id="local-min-pause">
+                      <option value="0.35">Snappy (0.35s)</option>
+                      <option value="0.5" selected>Natural Speech (0.50s)</option>
+                      <option value="0.75">Relaxed (0.75s)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="local-target-format">Output Format Ratio</label>
+                  <select class="select-field" id="local-target-format">
+                    <option value="youtube-shorts">YouTube Shorts / TikTok (9:16 Vertical)</option>
+                    <option value="instagram-reels">Instagram Reels (9:16 High-Energy)</option>
+                    <option value="youtube-main">YouTube 16:9 Landscape</option>
+                  </select>
+                </div>
+
+                <button class="btn btn-primary" id="btn-run-local-director" style="width: 100%; height: 48px; font-size: 14px; margin-top: 8px;">
+                  <i data-lucide="zap"></i> Generate Instant Edit Plan
+                </button>
+              </div>
+
+              <!-- Gemini Cloud Panel -->
+              <div id="panel-cloud-director" style="display: none;">
+                <div class="form-group">
+                  <label for="ai-instructions-input">Gemini Directives</label>
+                  <textarea class="textarea-field" id="ai-instructions-input" placeholder="e.g. Find the most engaging moment, cut out repetitions, and make it snappy."></textarea>
+                </div>
+                <button class="btn btn-secondary" id="btn-run-cloud-director" style="width: 100%; height: 46px;">
+                  <i data-lucide="sparkles"></i> Run Gemini Reasoning
+                </button>
+              </div>
+
+              <!-- Progress & Logs -->
+              <div class="agent-pipeline-box" id="ai-pipeline-box" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="font-size: 13px; font-weight: 700;" id="pipeline-status-text">Analyzing waveform...</div>
+                  <div style="font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--neon-cyan);" id="pipeline-status-pct">0%</div>
+                </div>
+
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill" id="pipeline-progress-bar"></div>
+                </div>
+
+                <div class="activity-log-stream" id="activity-log-stream"></div>
+              </div>
+
+              <!-- Plan Review Card -->
+              <div class="agent-pipeline-box" id="plan-review-card" style="display: none; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.05); margin-top: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="font-size: 14px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="check-circle-2" style="color: var(--neon-emerald); width: 18px; height: 18px;"></i>
+                    <span>Automatic Edit Ready!</span>
+                  </div>
+                  <span class="font-mono" style="font-size: 11px; color: var(--neon-cyan);" id="plan-summary-metrics">-</span>
+                </div>
+
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;" id="plan-narrative-summary"></div>
+                <div id="plan-highlights-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;"></div>
+
+                <div style="display: flex; gap: 10px;">
+                  <button class="btn btn-success" id="btn-approve-plan" style="flex: 1;">
+                    <i data-lucide="check"></i> Approve & Open Workspace
+                  </button>
+                  <button class="btn btn-danger btn-sm" id="btn-reject-plan">
+                    <i data-lucide="trash-2"></i> Reject
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 3: WORKSPACE -->
+      <section id="sec-editor-workspace" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="film" style="width:12px; height:12px;"></i> Stage 03</div>
+        <div class="section-header-wrap" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 id="workspace-project-title">Workspace: Ready</h2>
+            <p id="workspace-project-details">Realtime canvas preview with interactive segment cutting & punch-in zoom</p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary btn-sm" id="btn-ws-save-project">
+              <i data-lucide="save"></i> Save Project
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-ws-to-export">
+              <i data-lucide="arrow-down"></i> Go to Render
+            </button>
+          </div>
+        </div>
+
+        <div class="grid-3" style="grid-template-columns: 2fr 1fr; margin: 24px 0;">
+          <div class="card" style="padding: 16px;">
+            <div class="video-viewport" style="background:#000; min-height: 400px;">
+              <canvas id="workspace-canvas" style="display: block; max-height: 440px;"></canvas>
+              <video id="workspace-video" playsinline style="display: none;"></video>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 13px; color: var(--text-muted);">
+              <div>Timecode: <span id="ws-timecode" class="font-mono" style="color: var(--neon-cyan); font-weight:700;">00:00:00.00</span></div>
+              <div style="display: flex; gap: 10px;">
+                <span class="font-mono" id="ws-resolution-tag">-- x --</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-title" style="margin-bottom: 14px;"><i data-lucide="sliders"></i> Clip Inspector</div>
+            
+            <div id="segment-inspector-panel" style="padding: 14px; background: var(--bg-surface-elevated); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 14px;">
+              <div style="font-size: 12px; font-weight: 800; color: var(--neon-cyan); margin-bottom: 8px;" id="ins-segment-title">Select a clip on timeline</div>
+              <div class="grid-2" style="gap: 8px; margin-bottom: 8px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="ins-segment-start" style="font-size: 11px;">Start (sec)</label>
+                  <input type="number" step="0.1" class="input-field btn-sm font-mono" id="ins-segment-start" value="0.0" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="ins-segment-end" style="font-size: 11px;">End (sec)</label>
+                  <input type="number" step="0.1" class="input-field btn-sm font-mono" id="ins-segment-end" value="0.0" />
+                </div>
+              </div>
+              <div class="grid-2" style="gap: 8px; margin-bottom: 12px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="ins-segment-op" style="font-size: 11px;">Effect</label>
+                  <select class="select-field btn-sm" id="ins-segment-op">
+                    <option value="keep">Standard Keep</option>
+                    <option value="zoom">Punch-in Zoom (1.18x)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="ins-segment-transition" style="font-size: 11px;">Cut Type</label>
+                  <select class="select-field btn-sm" id="ins-segment-transition">
+                    <option value="cut">Hard Cut</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary btn-sm" style="flex:1;" id="btn-ins-apply-trim"><i data-lucide="check"></i> Apply</button>
+                <button class="btn btn-danger btn-sm" id="btn-ins-delete-segment"><i data-lucide="trash"></i></button>
+              </div>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto; max-height: 180px;">
+              <div id="edl-entries" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline-container">
+          <div class="timeline-header">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-sm" id="btn-timeline-play-toggle">
+                <i data-lucide="play" id="icon-timeline-play"></i>
+                <span id="text-timeline-play">Play</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-timeline-split">
+                <i data-lucide="scissors"></i> Split at Playhead
+              </button>
+              <span style="font-size: 11px; padding: 3px 10px; border-radius: 999px; background: rgba(16, 185, 129, 0.15); color: var(--neon-emerald); font-weight: 700;">Interactive Scrubbing</span>
+            </div>
+            <div style="font-size: 12px; color: var(--text-dim);">Shortcuts: <kbd class="font-mono">Space</kbd> Play/Pause</div>
+          </div>
+
+          <div class="timeline-tracks" id="timeline-interactive-tracks">
+            <div class="timeline-playhead-line" id="timeline-playhead">
+              <div class="playhead-head"></div>
+            </div>
+
+            <div class="timeline-track">
+              <div class="track-label"><i data-lucide="video" style="width:14px; height:14px;"></i> Video Cut</div>
+              <div class="track-body" id="timeline-video-track-body"></div>
+            </div>
+
+            <div class="timeline-track">
+              <div class="track-label"><i data-lucide="subtitles" style="width:14px; height:14px;"></i> Captions</div>
+              <div class="track-body" id="timeline-captions-track-body"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 4: SUBTITLE STUDIO -->
+      <section id="sec-subtitle-studio" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="captions" style="width:12px; height:12px;"></i> Stage 04</div>
+        <div class="section-header-wrap">
+          <h2>Subtitle & Kinetic Caption Studio</h2>
+          <p>Style synchronized captions, adjust fonts, shadows, and highlight accent colors.</p>
+        </div>
+
+        <div class="grid-2" style="margin-top: 24px;">
+          <div>
+            <div class="card" style="margin-bottom: 24px;">
+              <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="palette"></i> Kinetic Styling</div>
+              
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="sub-font-family">Typography</label>
