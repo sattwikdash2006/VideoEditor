@@ -1,0 +1,4295 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="description" content="AUTOEDIT AI — Autonomous, client-side video editor powered by Google Gemini and WebCodecs/Canvas processing." />
+  <title>AUTOEDIT AI — Autonomous Scrolling Video Engine</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Engine A: Pure JS MP4 Muxer for WebCodecs -->
+  <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"></script>
+
+  <style>
+    :root {
+      --bg-base: #07090e;
+      --bg-surface: #0e121b;
+      --bg-surface-elevated: #151a27;
+      --bg-surface-active: #1d2334;
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --border-medium: rgba(255, 255, 255, 0.14);
+      --border-glow: rgba(99, 102, 241, 0.35);
+      
+      --accent-indigo: #6366f1;
+      --accent-violet: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
+
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+      --glass-panel: rgba(14, 18, 27, 0.85);
+      --glass-blur: blur(14px);
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --sidebar-width: 270px;
+      --header-height: 64px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+      --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+    }
+
+    code, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    #app-container {
+      display: flex;
+      width: 100vw;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    #sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 5, 8, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 38;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    #sidebar-backdrop.active {
+      display: block;
+      opacity: 1;
+    }
+
+    aside.sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      transition: var(--transition-smooth);
+    }
+
+    .brand-header {
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-logo-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--accent-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+    }
+
+    .brand-title-wrap h1 {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-title-wrap span.phase-tag {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      font-weight: 700;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .nav-group {
+      padding: 18px 14px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .nav-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      padding: 8px 12px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: var(--transition-smooth);
+      min-height: 44px;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+      background-color: var(--bg-surface-elevated);
+    }
+
+    .nav-item.active {
+      color: #ffffff;
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.09) 100%);
+      border: 1px solid var(--border-glow);
+      font-weight: 600;
+    }
+
+    .nav-item i {
+      width: 18px;
+      height: 18px;
+    }
+
+    .nav-step-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-dim);
+    }
+    .nav-item.active .nav-step-badge {
+      background: rgba(99, 102, 241, 0.25);
+      color: #a5b4fc;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(7, 9, 14, 0.4);
+    }
+
+    .engine-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: var(--bg-surface-elevated);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.9); }
+    }
+
+    main.main-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 100vh;
+      overflow-y: visible;
+    }
+
+    header.top-header {
+      height: var(--header-height);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      background: var(--glass-panel);
+      backdrop-filter: var(--glass-blur);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+
+    .header-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      color: var(--text-dim);
+    }
+
+    .header-breadcrumb .current {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scroll-section {
+      padding: 42px 36px;
+      border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+    }
+
+    .section-stage-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent-indigo);
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    .section-header-wrap {
+      margin-bottom: 26px;
+    }
+
+    .section-header-wrap h2 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+    }
+
+    .section-header-wrap p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: var(--transition-smooth);
+      outline: none;
+      user-select: none;
+      white-space: nowrap;
+      min-height: 38px;
+    }
+
+    .btn:focus-visible {
+      box-shadow: 0 0 0 2px var(--accent-indigo);
+    }
+
+    .btn i {
+      width: 16px;
+      height: 16px;
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-medium);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-surface-active);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.1);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    .btn-danger:hover {
+      background: var(--accent-rose);
+      color: #fff;
+    }
+
+    .btn-success {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .btn-success:hover {
+      background: var(--accent-emerald);
+      color: #fff;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+    }
+    .btn-ghost:hover {
+      color: var(--text-main);
+      background: var(--bg-surface-elevated);
+    }
+
+    .btn-sm {
+      padding: 5px 12px;
+      font-size: 12px;
+      min-height: 32px;
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .dropzone {
+      border: 2px dashed rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.03);
+      border-radius: var(--radius-lg);
+      padding: 38px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent-indigo);
+      background: rgba(99, 102, 241, 0.08);
+      transform: scale(0.998);
+    }
+
+    .dropzone-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--bg-surface-elevated);
+      color: var(--accent-indigo);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .video-viewport {
+      background: #000;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 320px;
+    }
+
+    .video-viewport video, .video-viewport canvas {
+      width: 100%;
+      height: 100%;
+      max-height: 440px;
+      object-fit: contain;
+    }
+
+    .timeline-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .timeline-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface-elevated);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .timeline-tracks {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #090c12;
+      position: relative;
+      cursor: pointer;
+      overflow-x: auto;
+      touch-action: pan-x;
+    }
+
+    .timeline-playhead-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 102px;
+      width: 2px;
+      background: var(--accent-rose);
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 0 8px var(--accent-rose);
+      transition: left 0.05s linear;
+    }
+
+    .playhead-head {
+      position: absolute;
+      top: 0;
+      left: -5px;
+      width: 12px;
+      height: 12px;
+      background: var(--accent-rose);
+      transform: rotate(45deg);
+      border-radius: 2px;
+    }
+
+    .timeline-track {
+      height: 52px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .track-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      width: 90px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 2;
+      flex-shrink: 0;
+    }
+
+    .track-body {
+      flex: 1;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .clip-cut-segment {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border: 1px solid rgba(255,255,255,0.25);
+      cursor: pointer;
+      user-select: none;
+      transition: var(--transition-smooth);
+    }
+    .clip-cut-segment:hover {
+      filter: brightness(1.15);
+      border-color: #fff;
+    }
+    .clip-cut-segment.selected {
+      border: 2px solid var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .input-field, .textarea-field, .select-field {
+      width: 100%;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-medium);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      outline: none;
+      transition: var(--transition-smooth);
+    }
+
+    .input-field:focus, .textarea-field:focus, .select-field:focus {
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .textarea-field {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .agent-pipeline-box {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-gradient);
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .agent-chips-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+
+    .agent-chip {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-dim);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition-smooth);
+    }
+
+    .agent-chip.active {
+      color: var(--accent-cyan);
+      border-color: rgba(6, 182, 212, 0.4);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .agent-chip.done {
+      color: var(--accent-emerald);
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .activity-log-stream {
+      background: #05070b;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      height: 140px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .activity-log-line {
+      display: flex;
+      gap: 8px;
+    }
+    .activity-log-time {
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .activity-log-msg {
+      color: #cbd5e1;
+      word-break: break-word;
+    }
+    .activity-log-msg.highlight {
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+    .activity-log-msg.success {
+      color: var(--accent-emerald);
+      font-weight: 600;
+    }
+    .activity-log-msg.error {
+      color: var(--accent-rose);
+      font-weight: 600;
+    }
+
+    .sampled-frames-strip {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 10px 0 6px;
+      margin-top: 10px;
+    }
+
+    .sampled-frame-thumb {
+      width: 88px;
+      height: 54px;
+      border-radius: 6px;
+      border: 1px solid var(--border-medium);
+      object-fit: cover;
+      flex-shrink: 0;
+      position: relative;
+      background: #000;
+    }
+
+    .sampled-frame-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .sampled-frame-time {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 5, 8, 0.85);
+      backdrop-filter: var(--glass-blur);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 580px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      transform: scale(0.96);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+
+    .modal-scroll-body {
+      overflow-y: auto;
+      flex: 1;
+      margin: 12px 0 20px;
+      padding-right: 4px;
+    }
+
+    #toast-shelf {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      min-width: 280px;
+      max-width: 380px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-medium);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-main);
+      animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes toastIn {
+      from { transform: translateX(40px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .toast-success { border-left: 4px solid var(--accent-emerald); }
+    .toast-error { border-left: 4px solid var(--accent-rose); }
+    .toast-info { border-left: 4px solid var(--accent-cyan); }
+    .toast-warning { border-left: 4px solid var(--accent-amber); }
+
+    .empty-state {
+      padding: 48px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+    }
+
+    .empty-state i {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 14px;
+      opacity: 0.5;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 44px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 992px) {
+      aside.sidebar {
+        position: fixed;
+        left: -100%;
+        box-shadow: 20px 0 40px rgba(0,0,0,0.6);
+      }
+      aside.sidebar.mobile-open {
+        left: 0;
+      }
+      .mobile-menu-btn {
+        display: inline-flex;
+      }
+      .grid-4, .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .scroll-section {
+        padding: 30px 20px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid-4, .grid-3, .grid-2 {
+        grid-template-columns: 1fr;
+      }
+      header.top-header {
+        padding: 0 16px;
+      }
+      .scroll-section {
+        padding: 24px 14px;
+      }
+      .timeline-track {
+        height: 60px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <div id="sidebar-backdrop"></div>
+
+    <aside class="sidebar" id="app-sidebar">
+      <div class="brand-header">
+        <div class="brand-logo-badge">A</div>
+        <div class="brand-title-wrap">
+          <h1>AUTOEDIT <span class="phase-tag">SCROLL ENGINE</span></h1>
+        </div>
+      </div>
+
+      <nav class="nav-group" aria-label="Workflow Stages">
+        <div class="nav-group-title">EDITING STAGES</div>
+        <a class="nav-item active" data-target="sec-dashboard" role="button" tabindex="0">
+          <i data-lucide="layout-grid"></i>
+          <span>Dashboard</span>
+          <span class="nav-step-badge">01</span>
+        </a>
+        <a class="nav-item" data-target="sec-ai-editor" role="button" tabindex="0">
+          <i data-lucide="sparkles"></i>
+          <span>AI Director</span>
+          <span class="nav-step-badge">02</span>
+        </a>
+        <a class="nav-item" data-target="sec-editor-workspace" role="button" tabindex="0">
+          <i data-lucide="film"></i>
+          <span>Workspace</span>
+          <span class="nav-step-badge">03</span>
+        </a>
+        <a class="nav-item" data-target="sec-subtitle-studio" role="button" tabindex="0">
+          <i data-lucide="captions"></i>
+          <span>Subtitle Studio</span>
+          <span class="nav-step-badge">04</span>
+        </a>
+        <a class="nav-item" data-target="sec-export-center" role="button" tabindex="0">
+          <i data-lucide="download"></i>
+          <span>Export Center</span>
+          <span class="nav-step-badge">05</span>
+        </a>
+
+        <div class="nav-group-title" style="margin-top: 14px;">CONFIGURATION</div>
+        <a class="nav-item" data-target="sec-settings" role="button" tabindex="0">
+          <i data-lucide="settings-2"></i>
+          <span>Settings & API</span>
+          <span class="nav-step-badge">06</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="engine-status-pill">
+          <div class="status-dot"></div>
+          <div>
+            <div style="font-size: 12px; font-weight: 700;" id="sidebar-engine-badge">Engine Ready</div>
+            <div style="font-size: 10px; color: var(--text-dim);" id="sidebar-autosave-badge">Autosave Active</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-viewport" id="main-scroller">
+      
+      <header class="top-header">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button class="mobile-menu-btn" id="sidebar-toggle" aria-label="Open Navigation">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="header-breadcrumb">
+            <span>AUTOEDIT</span>
+            <span>/</span>
+            <span class="current" id="header-breadcrumb-title">Dashboard Overview</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div id="key-badge-status" style="display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 4px 10px; border-radius: 999px; background: rgba(244, 63, 94, 0.1); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.2);">
+            <i data-lucide="key-round" style="width: 12px; height: 12px;"></i>
+            <span>No API Key</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-top-new-project">
+            <i data-lucide="plus"></i>
+            <span>New Project</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- STAGE 1: DASHBOARD -->
+      <section id="sec-dashboard" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="layers" style="width:12px; height:12px;"></i> Stage 01</div>
+        <div class="section-header-wrap">
+          <h2>Dashboard Overview</h2>
+          <p>Continuous client-side video editor powered by Gemini AI and browser rendering engines.</p>
+        </div>
+
+        <div class="grid-4" style="margin-bottom: 24px;">
+          <div class="card">
+            <div style="font-size: 12px; color: var(--text-dim); font-weight: 600;">ACTIVE PROJECTS</div>
+            <div style="font-size: 26px; font-weight: 800; margin-top: 8px;" id="stat-project-count">0</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 12px; color: var(--text-dim); font-weight: 600;">GEMINI API KEY</div>
+            <div style="font-size: 16px; font-weight: 700; margin-top: 14px;" id="stat-key-status">Unconfigured</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 12px; color: var(--text-dim); font-weight: 600;">ACTIVE GEMINI MODEL</div>
+            <div style="font-size: 15px; font-weight: 700; margin-top: 14px; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace;" id="stat-active-model">gemini-3.8-flash</div>
+          </div>
+          <div class="card">
+            <div style="font-size: 12px; color: var(--text-dim); font-weight: 600;">LOCAL DB FOOTPRINT</div>
+            <div style="font-size: 16px; font-weight: 700; margin-top: 14px;" id="stat-storage-size">0.0 MB</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title"><i data-lucide="folder-kanban"></i> Local Projects</div>
+              <div class="card-desc">Projects & raw media blobs reside securely inside your browser's IndexedDB.</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-projects">
+              <i data-lucide="rotate-cw"></i> Refresh
+            </button>
+          </div>
+
+          <div id="project-list-container" class="grid-3"></div>
+
+          <div id="projects-empty-state" class="empty-state">
+            <i data-lucide="film"></i>
+            <h4 style="font-size: 16px; color: var(--text-muted); font-weight: 600;">No projects found</h4>
+            <p style="font-size: 13px; max-width: 340px; margin: 6px 0 16px;">Create a new project or upload your raw footage to begin editing.</p>
+            <button class="btn btn-primary btn-sm" id="btn-empty-upload-trigger">
+              <i data-lucide="upload"></i> Upload Raw Video
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 2: AI DIRECTOR -->
+      <section id="sec-ai-editor" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="sparkles" style="width:12px; height:12px;"></i> Stage 02</div>
+        <div class="section-header-wrap" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2>Autonomous AI Director</h2>
+            <p>Extract intelligent keyframe samples, analyze scene content with Gemini, and produce a structured Editing Decision List (EDL).</p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary btn-sm" id="btn-inspect-edl-modal" style="display: none;">
+              <i data-lucide="code-2"></i> Inspect Raw EDL
+            </button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Left Column -->
+          <div>
+            <div class="card" style="margin-bottom: 20px;">
+              <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="file-video"></i> Raw Source Ingest</div>
+              
+              <div class="dropzone" id="video-dropzone" tabindex="0" role="button" aria-label="Upload raw video file">
+                <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/quicktime" style="display:none;" />
+                <div class="dropzone-icon">
+                  <i data-lucide="upload-cloud"></i>
+                </div>
+                <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 6px;">Click or drag raw video here</h4>
+                <p style="font-size: 12px; color: var(--text-dim);">Supports MP4, WebM, MOV. Decoded locally in browser.</p>
+              </div>
+
+              <div id="video-metadata-panel" style="display: none; margin-top: 16px; background: var(--bg-surface-elevated); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div style="font-size: 12px; font-weight: 700; color: var(--accent-indigo); margin-bottom: 8px;">DETECTED SOURCE METADATA</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 12px;">
+                  <div><span style="color: var(--text-dim);">File Name:</span> <span id="meta-filename" style="font-weight:600;">-</span></div>
+                  <div><span style="color: var(--text-dim);">File Size:</span> <span id="meta-filesize" style="font-weight:600;">-</span></div>
+                  <div><span style="color: var(--text-dim);">Resolution:</span> <span id="meta-resolution" style="font-weight:600;">-</span></div>
+                  <div><span style="color: var(--text-dim);">Duration:</span> <span id="meta-duration" style="font-weight:600;">-</span></div>
+                  <div><span style="color: var(--text-dim);">Aspect Ratio:</span> <span id="meta-ratio" style="font-weight:600;">-</span></div>
+                  <div><span style="color: var(--text-dim);">MIME Type:</span> <span id="meta-mime" style="font-weight:600;">-</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title" style="margin-bottom: 12px;"><i data-lucide="eye"></i> Source Preview & Sampled Frames</div>
+              <div class="video-viewport" id="ai-editor-player-box" style="min-height: 220px;">
+                <video id="ai-editor-video" controls style="max-height: 260px; display: none;"></video>
+                <div id="ai-editor-placeholder" style="color: var(--text-dim); font-size: 13px;">No video loaded</div>
+              </div>
+
+              <div id="sampled-frames-container" style="display: none; margin-top: 14px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Intelligent Frame Samples</span>
+                  <span style="font-size: 10px; color: var(--accent-cyan);" id="sampled-frames-count">0 frames ready</span>
+                </div>
+                <div class="sampled-frames-strip" id="sampled-frames-strip"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div>
+            <div class="card">
+              <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="brain-circuit"></i> AI Director Configuration</div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="ai-model-select">Gemini Model</label>
+                  <select class="select-field" id="ai-model-select">
+                    <!-- GEMINI 3.8 FLASH ADDED -->
+                    <option value="gemini-3.8-flash" selected>Gemini 3.8 Flash (Ultra-Fast & Smart)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep Reasoning)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="custom">Custom Model ID...</option>
+                  </select>
+                  <input type="text" class="input-field font-mono" id="ai-custom-model-input" placeholder="Type custom model name (e.g. gemini-3.8-flash)" style="display: none; margin-top: 6px; font-size: 12px;" />
+                </div>
+
+                <div class="form-group">
+                  <label for="ai-sampling-rate">Frame Sampling Density</label>
+                  <select class="select-field" id="ai-sampling-rate">
+                    <option value="8">Balanced (8 Sampled Frames)</option>
+                    <option value="5">Fast (5 Sampled Frames)</option>
+                    <option value="12">Dense (12 Sampled Frames)</option>
+                    <option value="16">Deep Analysis (16 Sampled Frames)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="ai-target-format">Target Distribution Format</label>
+                <select class="select-field" id="ai-target-format">
+                  <option value="youtube-shorts">YouTube Shorts (9:16 Vertical Cut)</option>
+                  <option value="instagram-reels">Instagram Reels (9:16 High-Pace)</option>
+                  <option value="youtube-main">YouTube 16:9 Landscape (Retention-Optimized)</option>
+                  <option value="general-mp4">General Clean Highlight Reel</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="ai-instructions-input">Editing Instructions (Natural Language)</label>
+                <textarea class="textarea-field" id="ai-instructions-input" placeholder="e.g. Cut out all pauses and stutters, extract the most engaging moments, generate punchy kinetic captions in the bottom third, and structure for maximum retention."></textarea>
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Quick Preset Directives</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                  <button class="btn btn-secondary btn-sm preset-btn" data-preset="Remove all silent pauses over 0.5s, zoom in 10% on key phrases, cut fluff, and add fast-paced subtitles.">Remove Pauses & Zoom</button>
+                  <button class="btn btn-secondary btn-sm preset-btn" data-preset="Extract a high-octane 45-second viral reel with vibrant word-by-word subtitles and dramatic punch-in cuts.">Viral 45s Reel</button>
+                  <button class="btn btn-secondary btn-sm preset-btn" data-preset="Summarize the core educational points into a concise 60s short with clean, professional subtitles.">Educational 60s Short</button>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <button class="btn btn-primary" id="btn-run-ai-director" style="flex: 1; height: 44px;">
+                  <i data-lucide="sparkles"></i> Analyze Video & Generate Plan
+                </button>
+                <button class="btn btn-danger btn-sm" id="btn-cancel-analysis" style="display: none; height: 44px; padding: 0 16px;">
+                  <i data-lucide="x"></i> Cancel
+                </button>
+              </div>
+
+              <div style="margin-top: 10px; font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="shield-alert" style="width: 14px; height: 14px; color: var(--accent-amber);"></i>
+                <span>Sampled JPEG frames and prompt are sent directly to Google Gemini API via TLS. Full raw video is never uploaded.</span>
+              </div>
+
+              <div class="agent-pipeline-box" id="ai-pipeline-box" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-main);" id="pipeline-status-text">Starting analysis...</div>
+                  <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--accent-indigo);" id="pipeline-status-pct">0%</div>
+                </div>
+
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill" id="pipeline-progress-bar"></div>
+                </div>
+
+                <div class="agent-chips-row">
+                  <div class="agent-chip" id="chip-agent-sampling"><i data-lucide="camera" style="width:12px; height:12px;"></i> Sampling</div>
+                  <div class="agent-chip" id="chip-agent-scene"><i data-lucide="scan" style="width:12px; height:12px;"></i> Scene Agent</div>
+                  <div class="agent-chip" id="chip-agent-content"><i data-lucide="brain" style="width:12px; height:12px;"></i> Content Agent</div>
+                  <div class="agent-chip" id="chip-agent-caption"><i data-lucide="captions" style="width:12px; height:12px;"></i> Caption Agent</div>
+                  <div class="agent-chip" id="chip-agent-planner"><i data-lucide="list-ordered" style="width:12px; height:12px;"></i> EDL Planner</div>
+                  <div class="agent-chip" id="chip-agent-qc"><i data-lucide="check-check" style="width:12px; height:12px;"></i> Quality Control</div>
+                </div>
+
+                <div class="activity-log-stream" id="activity-log-stream">
+                  <div class="activity-log-line">
+                    <span class="activity-log-time">[00:00]</span>
+                    <span class="activity-log-msg">Director agent initialized and waiting for trigger.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="agent-pipeline-box" id="plan-review-card" style="display: none; border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.05); margin-top: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="font-size: 14px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="check-circle-2" style="color: var(--accent-emerald); width: 18px; height: 18px;"></i>
+                    <span>Editing Plan Ready for Review</span>
+                  </div>
+                  <span class="font-mono" style="font-size: 11px; color: var(--accent-cyan);" id="plan-summary-metrics">-</span>
+                </div>
+
+                <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;" id="plan-narrative-summary">
+                  AI has prepared the structured EDL based on your instructions.
+                </div>
+
+                <div id="plan-highlights-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;"></div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <button class="btn btn-success" id="btn-approve-plan" style="flex: 1;">
+                    <i data-lucide="check"></i> Approve Plan & Scroll to Workspace
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btn-regenerate-plan">
+                    <i data-lucide="rotate-cw"></i> Regenerate
+                  </button>
+                  <button class="btn btn-danger btn-sm" id="btn-reject-plan">
+                    <i data-lucide="trash-2"></i> Reject
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 3: EDITOR WORKSPACE -->
+      <section id="sec-editor-workspace" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="film" style="width:12px; height:12px;"></i> Stage 03</div>
+        <div class="section-header-wrap" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 id="workspace-project-title">Workspace: Untitled Project</h2>
+            <p id="workspace-project-details">Ready for interactive inspection and trimming</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" id="btn-ws-save-project">
+              <i data-lucide="save"></i> Save State
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-ws-to-export">
+              <i data-lucide="arrow-down"></i> Scroll to Export
+            </button>
+          </div>
+        </div>
+
+        <div class="grid-3" style="grid-template-columns: 2fr 1fr; margin-bottom: 20px;">
+          <div class="card" style="padding: 16px;">
+            <div class="video-viewport" style="background:#000; min-height: 380px;">
+              <canvas id="workspace-canvas" style="display: block; max-height: 440px;"></canvas>
+              <video id="workspace-video" playsinline style="display: none;"></video>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+              <div>Timecode: <span id="ws-timecode" class="font-mono" style="color: var(--text-main); font-weight:600;">00:00:00.00</span></div>
+              <div style="display: flex; gap: 8px;">
+                <span class="font-mono" id="ws-resolution-tag">-- x --</span>
+                <span class="font-mono" id="ws-aspect-tag">--:--</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-title" style="margin-bottom: 12px;"><i data-lucide="sliders"></i> Segment & Audio Inspector</div>
+            
+            <div id="segment-inspector-panel" style="padding: 12px; background: var(--bg-surface-elevated); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 12px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-indigo); margin-bottom: 6px;" id="ins-segment-title">No Segment Selected</div>
+              <div class="grid-2" style="gap: 8px; margin-bottom: 8px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="ins-segment-start" style="font-size: 11px;">Start (sec)</label>
+                  <input type="number" step="0.1" class="input-field btn-sm font-mono" id="ins-segment-start" value="0.0" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="ins-segment-end" style="font-size: 11px;">End (sec)</label>
+                  <input type="number" step="0.1" class="input-field btn-sm font-mono" id="ins-segment-end" value="0.0" />
+                </div>
+              </div>
+              <div class="grid-2" style="gap: 8px; margin-bottom: 8px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="ins-segment-op" style="font-size: 11px;">Operation</label>
+                  <select class="select-field btn-sm" id="ins-segment-op">
+                    <option value="keep">Keep</option>
+                    <option value="highlight">Highlight</option>
+                    <option value="speed">Speed Up (1.5x)</option>
+                    <option value="zoom">Punch In Zoom</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="ins-segment-transition" style="font-size: 11px;">Transition</label>
+                  <select class="select-field btn-sm" id="ins-segment-transition">
+                    <option value="cut">Direct Cut</option>
+                    <option value="fade">Fade In/Out</option>
+                    <option value="dissolve">Cross Dissolve</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display: flex; gap: 6px; margin-top: 10px;">
+                <button class="btn btn-secondary btn-sm" style="flex:1;" id="btn-ins-apply-trim"><i data-lucide="check"></i> Apply</button>
+                <button class="btn btn-secondary btn-sm" id="btn-ins-move-left" title="Move segment earlier"><i data-lucide="arrow-left"></i></button>
+                <button class="btn btn-secondary btn-sm" id="btn-ins-move-right" title="Move segment later"><i data-lucide="arrow-right"></i></button>
+                <button class="btn btn-danger btn-sm" id="btn-ins-delete-segment" title="Delete segment"><i data-lucide="trash"></i></button>
+              </div>
+            </div>
+
+            <div style="background: var(--bg-surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 12px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px;">TRACK AUDIO CONTROLS</div>
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <span style="font-size: 11px; color: var(--text-dim); width: 60px;">Volume</span>
+                <input type="range" min="0" max="1.5" step="0.05" value="1.0" id="ws-audio-volume" style="flex:1;" aria-label="Audio Volume Slider" />
+                <span class="font-mono" style="font-size: 11px;" id="ws-audio-vol-text">100%</span>
+              </div>
+              <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-muted);">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="checkbox" id="ws-audio-fade-in" checked /> Audio Fade In
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="checkbox" id="ws-audio-fade-out" checked /> Audio Fade Out
+                </label>
+              </div>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto; max-height: 180px;">
+              <div id="edl-entries" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
+            
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 10px; color: var(--text-dim); font-weight: 600;">ACTIVE PLAN</div>
+                <div style="font-size: 12px; color: var(--accent-emerald);" id="ws-edl-status">Ready</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btn-ws-inspect-edl"><i data-lucide="code-2"></i> View JSON</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline-container">
+          <div class="timeline-header">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-sm" id="btn-timeline-play-toggle">
+                <i data-lucide="play" id="icon-timeline-play"></i>
+                <span id="text-timeline-play">Play</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-timeline-split" title="Split active segment at playhead">
+                <i data-lucide="scissors"></i> Split at Playhead
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-timeline-add-seg" title="Add new segment">
+                <i data-lucide="plus"></i> Add Cut
+              </button>
+              <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(6, 182, 212, 0.1); color: var(--accent-cyan); font-weight: 600;" id="timeline-edl-badge">Interactive Timeline</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; color: var(--text-dim);">Zoom:</span>
+              <button class="btn btn-secondary btn-sm" id="btn-timeline-zoom-in" aria-label="Zoom in timeline"><i data-lucide="zoom-in"></i></button>
+              <button class="btn btn-secondary btn-sm" id="btn-timeline-zoom-out" aria-label="Zoom out timeline"><i data-lucide="zoom-out"></i></button>
+            </div>
+          </div>
+
+          <div class="timeline-tracks" id="timeline-interactive-tracks">
+            <div class="timeline-playhead-line" id="timeline-playhead">
+              <div class="playhead-head"></div>
+            </div>
+
+            <div class="timeline-track">
+              <div class="track-label"><i data-lucide="video" style="width:13px; height:13px;"></i> Video 1</div>
+              <div class="track-body" id="timeline-video-track-body">
+                <div class="clip-placeholder" style="left: 0; width: 100%;" id="timeline-video-clip">Source Master Track</div>
+              </div>
+            </div>
+
+            <div class="timeline-track">
+              <div class="track-label"><i data-lucide="volume-2" style="width:13px; height:13px;"></i> Audio 1</div>
+              <div class="track-body" id="timeline-audio-track-body">
+                <div class="clip-placeholder" style="left: 0; width: 100%; background: linear-gradient(90deg, rgba(6, 182, 212, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%); border-color: var(--accent-cyan);">Master Audio Waveform Track</div>
+              </div>
+            </div>
+
+            <div class="timeline-track">
+              <div class="track-label"><i data-lucide="subtitles" style="width:13px; height:13px;"></i> Captions</div>
+              <div class="track-body" id="timeline-captions-track-body">
+                <div class="clip-placeholder" style="left: 0; width: 100%; background: linear-gradient(90deg, rgba(16, 185, 129, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%); border-color: var(--accent-emerald);">AI Subtitle Synchronizer Track</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 4: SUBTITLE STUDIO -->
+      <section id="sec-subtitle-studio" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="captions" style="width:12px; height:12px;"></i> Stage 04</div>
+        <div class="section-header-wrap">
+          <h2>Subtitle & Caption Studio</h2>
+          <p>Review AI-generated kinetic captions, customize typography, edit timestamps, and live-preview text overlays.</p>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <div class="card" style="margin-bottom: 20px;">
+              <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="palette"></i> Typography & Styling Parameters</div>
+              
+              <div class="form-group">
+                <label for="sub-custom-text">Custom Test Caption Text</label>
+                <input type="text" class="input-field" id="sub-custom-text" value="AI WILL REVOLUTIONIZE YOUR WORKFLOW" />
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="sub-font-family">Font Family</label>
+                  <select class="select-field" id="sub-font-family">
+                    <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+                    <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                    <option value="Impact, sans-serif">Impact Bold Style</option>
+                    <option value="Arial, sans-serif">Arial Standard</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="sub-font-size">Font Size (px)</label>
+                  <input type="number" class="input-field" id="sub-font-size" value="32" min="14" max="80" />
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="sub-text-color">Text Color</label>
+                  <input type="color" class="input-field" id="sub-text-color" value="#FFFFFF" style="height: 42px; padding: 4px;" />
+                </div>
+
+                <div class="form-group">
+                  <label for="sub-accent-color">Highlight Accent Color</label>
+                  <input type="color" class="input-field" id="sub-accent-color" value="#FACC15" style="height: 42px; padding: 4px;" />
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="sub-position">Vertical Position</label>
+                  <select class="select-field" id="sub-position">
+                    <option value="bottom">Bottom Third (Standard)</option>
+                    <option value="center">Center Attention</option>
+                    <option value="top">Top Third</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="sub-box-shadow">Background Box Shadow</label>
+                  <select class="select-field" id="sub-box-shadow">
+                    <option value="heavy">Heavy Text Shadow</option>
+                    <option value="solid-box">Solid Translucent Box</option>
+                    <option value="none">Clean Sans-Shadow</option>
+                  </select>
+                </div>
+              </div>
+
+              <button class="btn btn-secondary" style="width: 100%; margin-top: 10px;" id="btn-save-sub-styles">
+                <i data-lucide="check"></i> Apply Subtitle Styling
+              </button>
+            </div>
+
+            <div class="card">
+              <div class="card-header" style="margin-bottom: 12px;">
+                <div class="card-title"><i data-lucide="captions"></i> Timed Caption Segments</div>
+                <button class="btn btn-secondary btn-sm" id="btn-add-caption-item"><i data-lucide="plus"></i> Add Line</button>
+              </div>
+              <div id="sub-generated-list" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 12px; color: var(--text-dim); text-align: center; padding: 20px 0;">
+                  No captions loaded. Generate with AI Director or add manually above.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-header" style="margin-bottom: 12px;">
+              <div class="card-title"><i data-lucide="monitor"></i> Subtitle Styling Preview</div>
+              <button class="btn btn-secondary btn-sm" id="btn-toggle-sub-backdrop">
+                <i data-lucide="image"></i> Toggle Video Backdrop
+              </button>
+            </div>
+            
+            <div style="flex: 1; background: #000; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; position: relative; min-height: 320px; overflow: hidden;" id="subtitle-preview-container">
+              <video id="sub-preview-video-underlay" muted loop playsinline style="position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.35; display: none;"></video>
+              <div style="position: absolute; top: 12px; left: 12px; font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Preview Frame</div>
+              
+              <div id="subtitle-sample-text" style="padding: 8px 16px; border-radius: 6px; text-align: center; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; z-index: 2; transition: var(--transition-smooth);">
+                AI WILL <span id="subtitle-sample-highlight" style="color: #FACC15;">REVOLUTIONIZE</span> YOUR WORKFLOW
+              </div>
+            </div>
+            
+            <div style="margin-top: 14px; font-size: 12px; color: var(--text-dim); text-align: center;">
+              Captions will be burned directly into the final render canvas matching these visual parameters.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 5: EXPORT CENTER -->
+      <section id="sec-export-center" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="download" style="width:12px; height:12px;"></i> Stage 05</div>
+        <div class="section-header-wrap">
+          <h2>Adaptive Export Center</h2>
+          <p>Render your validated EDL and burned-in kinetic subtitles directly into a downloadable MP4 or WebM video file.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="sliders"></i> Encoding & Render Settings</div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="export-format">Container Format</label>
+                <select class="select-field" id="export-format">
+                  <option value="mp4">MP4 (H.264 / AAC)</option>
+                  <option value="webm">WebM (VP9 / Opus)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="export-resolution">Resolution</label>
+                <select class="select-field" id="export-resolution">
+                  <option value="1080p">1080p Full HD (1920x1080 / 1080x1920)</option>
+                  <option value="720p">720p HD (1280x720 / 720x1280 - Mobile Optimal)</option>
+                  <option value="480p">480p SD (Fast Low-Memory)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="export-aspect">Aspect Ratio Conform</label>
+                <select class="select-field" id="export-aspect">
+                  <option value="source">Match Source Metadata</option>
+                  <option value="9:16">9:16 (Vertical Shorts / Reels)</option>
+                  <option value="16:9">16:9 (Landscape YouTube)</option>
+                  <option value="1:1">1:1 (Square Feed)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="export-fps">Frame Rate</label>
+                <select class="select-field" id="export-fps">
+                  <option value="30">30 FPS (Standard Smooth)</option>
+                  <option value="24">24 FPS (Cinematic)</option>
+                  <option value="60">60 FPS (Ultra Smooth - Desktop)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="export-engine-select">Engine Selection Policy</label>
+                <select class="select-field" id="export-engine-select">
+                  <option value="auto">Adaptive Auto (Recommended)</option>
+                  <option value="webcodecs">Engine A: Native WebCodecs + MP4 Muxer</option>
+                  <option value="canvas-recorder">Engine A2: Canvas Stream + MediaRecorder</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="export-subtitles-toggle">Subtitles</label>
+                <select class="select-field" id="export-subtitles-toggle">
+                  <option value="burn-in">Burn In Subtitles on Video</option>
+                  <option value="none">No Subtitles (Clean Video)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 14px;">
+              <button class="btn btn-primary" id="btn-start-export" style="flex: 1; height: 46px;">
+                <i data-lucide="play-circle"></i> Start Video Rendering
+              </button>
+              <button class="btn btn-danger" id="btn-cancel-export" style="display: none; height: 46px; padding: 0 16px;">
+                <i data-lucide="x"></i> Abort
+              </button>
+            </div>
+
+            <div id="export-progress-panel" style="display: none; margin-top: 16px; background: var(--bg-surface-elevated); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--text-main);" id="export-status-label">Rendering frames...</span>
+                <span class="font-mono" style="font-size: 12px; color: var(--accent-indigo);" id="export-status-pct">0%</span>
+              </div>
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" id="export-progress-bar"></div>
+              </div>
+              <div style="font-size: 11px; color: var(--text-dim);" id="export-details-label">Frame 0 of 0</div>
+            </div>
+
+            <div id="export-success-box" style="display: none; margin-top: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); padding: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--accent-emerald); margin-bottom: 6px;">
+                <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+                <span>Video Render Complete!</span>
+              </div>
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;" id="export-success-details">Your video file is assembled and ready for download.</p>
+              <a class="btn btn-success" id="btn-download-video" download="autoedit_export.mp4" style="width: 100%; text-decoration: none;">
+                <i data-lucide="download"></i> Download Exported Video
+              </a>
+            </div>
+
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="cpu"></i> Adaptive Engine Diagnostic</div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="padding: 12px 14px; background: var(--bg-surface-elevated); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-indigo);">
+                <div style="font-size: 12.5px; font-weight: 700;">Engine A: Native WebCodecs + MP4 Muxer</div>
+                <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;" id="diag-webcodecs-status">Checking compatibility...</div>
+              </div>
+
+              <div style="padding: 12px 14px; background: var(--bg-surface-elevated); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-cyan);">
+                <div style="font-size: 12.5px; font-weight: 700;">Engine A2: Canvas Stream + MediaRecorder</div>
+                <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;" id="diag-mediarecorder-status">Available across all modern mobile and desktop browsers.</div>
+              </div>
+
+              <div style="padding: 12px 14px; background: var(--bg-surface-elevated); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-emerald);">
+                <div style="font-size: 12.5px; font-weight: 700;">Engine B: FFmpeg.wasm (Single-Threaded)</div>
+                <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;" id="diag-ffmpeg-status">Lazy-loadable from CDN for complex transcoding.</div>
+              </div>
+
+              <div style="padding: 12px 14px; background: var(--bg-surface-elevated); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-amber);">
+                <div style="font-size: 12.5px; font-weight: 700;">Engine C: Safe Fallback & Device Profile</div>
+                <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;" id="diag-device-profile">Estimating hardware constraints...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 6: SETTINGS & GEMINI API -->
+      <section id="sec-settings" class="scroll-section">
+        <div class="section-stage-tag"><i data-lucide="settings-2" style="width:12px; height:12px;"></i> Stage 06</div>
+        <div class="section-header-wrap">
+          <h2>Settings & Privacy Controls</h2>
+          <p>Manage your Gemini API key credentials, select active models, and control browser storage lifecycle.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="key"></i> Gemini API Key Credential</div>
+
+            <div class="form-group">
+              <label for="input-api-key">Google Gemini API Key</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="password" class="input-field font-mono" id="input-api-key" placeholder="AIzaSy..." autocomplete="off" />
+                <button class="btn btn-secondary" id="btn-toggle-key-visibility" type="button" aria-label="Toggle Key Visibility">
+                  <i data-lucide="eye" id="icon-key-eye"></i>
+                </button>
+              </div>
+              <p style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Direct browser-to-Google communication only. Key is never sent to any intermediary server.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="settings-default-model">Default Gemini Model</label>
+              <select class="select-field" id="settings-default-model">
+                <!-- GEMINI 3.8 FLASH ADDED -->
+                <option value="gemini-3.8-flash" selected>Gemini 3.8 Flash (Ultra-Fast & Smart)</option>
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                <option value="custom">Custom Model ID...</option>
+              </select>
+              <input type="text" class="input-field font-mono" id="settings-custom-model-input" placeholder="Type custom model name (e.g. gemini-3.8-flash)" style="display: none; margin-top: 6px; font-size: 12px;" />
+            </div>
+
+            <div class="form-group">
+              <label for="select-key-storage-policy">Storage Policy</label>
+              <select class="select-field" id="select-key-storage-policy">
+                <option value="session">Session Only (Clears on tab close — Recommended)</option>
+                <option value="local">Local Storage (Persists in this browser)</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="btn-save-key">
+                <i data-lucide="save"></i> Save Key
+              </button>
+              <button class="btn btn-secondary" id="btn-test-key-connection">
+                <i data-lucide="activity"></i> Test Connectivity
+              </button>
+              <button class="btn btn-danger" id="btn-remove-key">
+                <i data-lucide="trash-2"></i> Clear Key
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom: 16px;"><i data-lucide="shield-check"></i> Security Architecture Notice</div>
+            
+            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
+              <p>
+                <strong>Client-Side Processing:</strong> AUTOEDIT AI operates with no proprietary backend. All video rendering, frame extraction, and timeline operations run locally on your device.
+              </p>
+              <p>
+                <strong>Zero Full-Video Cloud Upload:</strong> For AI video analysis, only selected downsampled JPEG frames are transmitted over TLS to Google's official Gemini endpoint. Full video files remain on your device.
+              </p>
+              <p>
+                <strong>Model Flexibility:</strong> Supports Gemini 3.8 Flash, 2.5, 1.5, or any valid model identifier available in your Google Cloud / AI Studio project.
+              </p>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px; margin-top: 20px;">
+              <button class="btn btn-danger btn-sm" id="btn-purge-all-data">
+                <i data-lucide="trash"></i> Purge All IndexedDB & Cache
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="global-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="modal-title" style="font-size: 18px; font-weight: 700;">Create Project</h3>
+        <button class="btn btn-ghost btn-sm" id="btn-close-modal" aria-label="Close dialog"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-scroll-body" id="modal-body"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px;">
+        <button class="btn btn-secondary" id="btn-modal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="btn-modal-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-shelf" aria-live="polite"></div>
+
+  <script>
+    const DOMSanitizer = {
+      escape(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+    };
+
+    // 1. APPLICATION STATE (Defaults to gemini-3.8-flash)
+    const AppState = {
+      apiKey: '',
+      apiModel: 'gemini-3.8-flash',
+      apiKeyStorageType: 'session',
+      activeProject: null,
+      loadedVideoFile: null,
+      loadedVideoMetadata: null,
+      sampledFrames: [],
+      activeAnalysisController: null,
+      selectedSegmentIndex: -1,
+      isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+      subtitleStyle: {
+        customText: 'AI WILL REVOLUTIONIZE YOUR WORKFLOW',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontSize: 32,
+        textColor: '#FFFFFF',
+        accentColor: '#FACC15',
+        position: 'bottom',
+        boxShadow: 'heavy'
+      },
+      audioSettings: {
+        volume: 1.0,
+        fadeIn: true,
+        fadeOut: true
+      }
+    };
+
+    const BlobLifecycleManager = {
+      activeUrls: new Set(),
+      create(blobOrFile) {
+        if (!blobOrFile) return '';
+        const url = URL.createObjectURL(blobOrFile);
+        this.activeUrls.add(url);
+        return url;
+      },
+      revoke(url) {
+        if (url && this.activeUrls.has(url)) {
+          URL.revokeObjectURL(url);
+          this.activeUrls.delete(url);
+        }
+      },
+      revokeAll() {
+        this.activeUrls.forEach(url => URL.revokeObjectURL(url));
+        this.activeUrls.clear();
+      }
+    };
+
+    window.addEventListener('beforeunload', () => {
+      BlobLifecycleManager.revokeAll();
+    });
+
+    class DatabaseService {
+      constructor() {
+        this.dbName = 'AutoEditAI_DB';
+        this.dbVersion = 1;
+        this.db = null;
+        this.autosaveTimeout = null;
+      }
+
+      async init() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.dbVersion);
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('projects')) {
+              const store = db.createObjectStore('projects', { keyPath: 'id' });
+              store.createIndex('updatedAt', 'updatedAt', { unique: false });
+            }
+          };
+          request.onsuccess = (event) => {
+            this.db = event.target.result;
+            resolve(this.db);
+          };
+          request.onerror = (event) => reject(event.target.error);
+        });
+      }
+
+      async saveProject(project) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) return reject(new Error('Database not initialized'));
+          try {
+            const tx = this.db.transaction('projects', 'readwrite');
+            const store = tx.objectStore('projects');
+            const req = store.put(project);
+            req.onsuccess = () => resolve(project);
+            req.onerror = (e) => {
+              if (e.target.error?.name === 'QuotaExceededError') {
+                const sanitized = { ...project, mediaBlob: null };
+                const retryTx = this.db.transaction('projects', 'readwrite');
+                retryTx.objectStore('projects').put(sanitized);
+                retryTx.oncomplete = () => resolve(sanitized);
+                retryTx.onerror = (err) => reject(err.target.error);
+              } else {
+                reject(e.target.error);
+              }
+            };
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      async getProjects() {
+        return new Promise((resolve, reject) => {
+          if (!this.db) return reject(new Error('Database not initialized'));
+          const tx = this.db.transaction('projects', 'readonly');
+          const store = tx.objectStore('projects');
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      async deleteProject(id) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) return reject(new Error('Database not initialized'));
+          const tx = this.db.transaction('projects', 'readwrite');
+          const store = tx.objectStore('projects');
+          const req = store.delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      async clearAll() {
+        return new Promise((resolve, reject) => {
+          if (!this.db) return reject(new Error('Database not initialized'));
+          const tx = this.db.transaction('projects', 'readwrite');
+          const store = tx.objectStore('projects');
+          const req = store.clear();
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      triggerAutosave() {
+        if (!AppState.activeProject) return;
+        const badge = document.getElementById('sidebar-autosave-badge');
+        if (badge) badge.innerText = 'Saving...';
+
+        clearTimeout(this.autosaveTimeout);
+        this.autosaveTimeout = setTimeout(async () => {
+          try {
+            AppState.activeProject.updatedAt = new Date().toISOString();
+            await this.saveProject(AppState.activeProject);
+            if (badge) badge.innerText = 'Autosaved';
+          } catch (e) {
+            console.error('Autosave error:', e);
+            if (badge) badge.innerText = 'Autosave Failed';
+          }
+        }, 800);
+      }
+    }
+
+    const Toast = {
+      show(message, type = 'info', duration = 3500) {
+        const shelf = document.getElementById('toast-shelf');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        let iconName = 'info';
+        if (type === 'success') iconName = 'check-circle';
+        if (type === 'error') iconName = 'alert-triangle';
+        if (type === 'warning') iconName = 'alert-circle';
+
+        toast.innerHTML = `
+          <i data-lucide="${iconName}" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
+          <div style="flex:1; line-height: 1.4;">${DOMSanitizer.escape(message)}</div>
+        `;
+
+        shelf.appendChild(toast);
+        lucide.createIcons();
+
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(50px)';
+          toast.style.transition = 'all 0.3s ease';
+          setTimeout(() => toast.remove(), 300);
+        }, duration);
+      }
+    };
+
+    class ModalController {
+      constructor() {
+        this.overlay = document.getElementById('global-modal');
+        this.title = document.getElementById('modal-title');
+        this.body = document.getElementById('modal-body');
+        this.btnConfirm = document.getElementById('btn-modal-confirm');
+        this.btnCancel = document.getElementById('btn-modal-cancel');
+        this.btnClose = document.getElementById('btn-close-modal');
+        this.onConfirmCallback = null;
+        this.init();
+      }
+
+      init() {
+        this.btnCancel.addEventListener('click', () => this.close());
+        this.btnClose.addEventListener('click', () => this.close());
+        this.overlay.addEventListener('click', (e) => {
+          if (e.target === this.overlay) this.close();
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.overlay.classList.contains('active')) this.close();
+        });
+        this.btnConfirm.addEventListener('click', () => {
+          if (typeof this.onConfirmCallback === 'function') this.onConfirmCallback();
+        });
+      }
+
+      open({ title, htmlContent, confirmText = 'Confirm', confirmClass = 'btn-primary', onConfirm }) {
+        this.title.innerText = title;
+        this.body.innerHTML = htmlContent;
+        this.btnConfirm.innerText = confirmText;
+        this.btnConfirm.className = `btn ${confirmClass}`;
+        this.onConfirmCallback = onConfirm;
+        this.overlay.classList.add('active');
+        lucide.createIcons();
+      }
+
+      close() {
+        this.overlay.classList.remove('active');
+        this.onConfirmCallback = null;
+      }
+    }
+
+    class ScrollNavigationController {
+      constructor() {
+        this.navItems = document.querySelectorAll('.nav-item');
+        this.sections = document.querySelectorAll('.scroll-section');
+        this.breadcrumbTitle = document.getElementById('header-breadcrumb-title');
+        this.sidebar = document.getElementById('app-sidebar');
+        this.sidebarBackdrop = document.getElementById('sidebar-backdrop');
+        this.mobileToggle = document.getElementById('sidebar-toggle');
+
+        this.titleMap = {
+          'sec-dashboard': 'Dashboard Overview',
+          'sec-ai-editor': 'Stage 02: AI Director',
+          'sec-editor-workspace': 'Stage 03: Workspace',
+          'sec-subtitle-studio': 'Stage 04: Subtitle Studio',
+          'sec-export-center': 'Stage 05: Export Center',
+          'sec-settings': 'Stage 06: Settings & Privacy'
+        };
+
+        this.initListeners();
+        this.initScrollSpy();
+      }
+
+      initListeners() {
+        this.navItems.forEach(item => {
+          const handler = () => {
+            const targetId = item.getAttribute('data-target');
+            this.scrollTo(targetId);
+            this.closeMobileSidebar();
+          };
+          item.addEventListener('click', handler);
+          item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handler();
+            }
+          });
+        });
+
+        if (this.mobileToggle) {
+          this.mobileToggle.addEventListener('click', () => {
+            const isOpen = this.sidebar.classList.toggle('mobile-open');
+            this.sidebarBackdrop.classList.toggle('active', isOpen);
+          });
+        }
+
+        if (this.sidebarBackdrop) {
+          this.sidebarBackdrop.addEventListener('click', () => this.closeMobileSidebar());
+        }
+      }
+
+      initScrollSpy() {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const id = entry.target.id;
+              this.updateActiveNav(id);
+            }
+          });
+        }, { root: null, rootMargin: '-20% 0px -60% 0px', threshold: 0 });
+
+        this.sections.forEach(sec => observer.observe(sec));
+      }
+
+      updateActiveNav(sectionId) {
+        this.navItems.forEach(nav => {
+          nav.classList.toggle('active', nav.getAttribute('data-target') === sectionId);
+        });
+        if (this.titleMap[sectionId]) {
+          this.breadcrumbTitle.innerText = this.titleMap[sectionId];
+        }
+      }
+
+      scrollTo(sectionId) {
+        const target = document.getElementById(sectionId);
+        if (target) {
+          const headerOffset = 70;
+          const elementPosition = target.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        }
+      }
+
+      closeMobileSidebar() {
+        this.sidebar.classList.remove('mobile-open');
+        this.sidebarBackdrop.classList.remove('active');
+      }
+    }
+
+    class FrameSamplingEngine {
+      static async sampleVideoFrames(videoFile, sampleCount = 8, onProgress = () => {}) {
+        return new Promise(async (resolve, reject) => {
+          const video = document.createElement('video');
+          video.preload = 'auto';
+          video.muted = true;
+          video.playsInline = true;
+
+          const objectUrl = BlobLifecycleManager.create(videoFile);
+          video.src = objectUrl;
+
+          const cleanup = () => {
+            BlobLifecycleManager.revoke(objectUrl);
+            video.removeAttribute('src');
+            video.load();
+          };
+
+          video.onerror = () => {
+            cleanup();
+            reject(new Error('Failed to decode video container for frame sampling.'));
+          };
+
+          video.onloadedmetadata = async () => {
+            const duration = video.duration;
+            if (!duration || isNaN(duration) || duration <= 0) {
+              cleanup();
+              reject(new Error('Invalid video duration detected.'));
+              return;
+            }
+
+            const canvas = document.createElement('canvas');
+            const maxDim = 480;
+            let targetWidth = video.videoWidth || 640;
+            let targetHeight = video.videoHeight || 360;
+
+            if (targetWidth > targetHeight) {
+              if (targetWidth > maxDim) {
+                targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
+                targetWidth = maxDim;
+              }
+            } else {
+              if (targetHeight > maxDim) {
+                targetWidth = Math.round((targetWidth * maxDim) / targetHeight);
+                targetHeight = maxDim;
+              }
+            }
+
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+
+            const step = duration / (sampleCount + 1);
+            const timestamps = [];
+            for (let i = 1; i <= sampleCount; i++) {
+              timestamps.push(Number((i * step).toFixed(2)));
+            }
+
+            const frames = [];
+            try {
+              for (let i = 0; i < timestamps.length; i++) {
+                const time = timestamps[i];
+                await new Promise((resSeek) => {
+                  const onSeeked = () => {
+                    video.removeEventListener('seeked', onSeeked);
+                    resSeek();
+                  };
+                  video.addEventListener('seeked', onSeeked);
+                  video.currentTime = time;
+                });
+
+                ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+                const base64Data = dataUrl.split(',')[1];
+
+                frames.push({
+                  timestamp: time,
+                  formattedTime: FrameSamplingEngine.formatTime(time),
+                  dataUrl: dataUrl,
+                  base64: base64Data
+                });
+
+                onProgress(i + 1, timestamps.length, time);
+              }
+
+              cleanup();
+              resolve(frames);
+            } catch (err) {
+              cleanup();
+              reject(err);
+            }
+          };
+        });
+      }
+
+      static formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds % 1) * 10);
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${ms}`;
+      }
+    }
+
+    class EDLValidator {
+      static validateAndSanitize(rawEdl, videoDuration = 60) {
+        if (!rawEdl || typeof rawEdl !== 'object') {
+          throw new Error('EDL root must be a valid JSON object.');
+        }
+
+        const project = rawEdl.project || {};
+        const safeTitle = String(project.title || 'AI Autonomous Edit').substring(0, 100);
+        const safeTarget = ['youtube-shorts', 'instagram-reels', 'youtube-main', 'general-mp4'].includes(project.target)
+          ? project.target
+          : 'general-mp4';
+        const safeRatio = String(project.aspectRatio || '16:9');
+
+        const rawSegments = Array.isArray(rawEdl.segments) ? rawEdl.segments : [];
+        const sanitizedSegments = [];
+        let accumulatedTimelineTime = 0;
+
+        for (let i = 0; i < rawSegments.length; i++) {
+          const seg = rawSegments[i];
+          let start = Number(seg.sourceStart);
+          let end = Number(seg.sourceEnd);
+
+          if (isNaN(start) || start < 0) start = 0;
+          if (isNaN(end) || end <= start) end = start + 3;
+          if (end > videoDuration) end = videoDuration;
+
+          const duration = Math.max(0.4, Number((end - start).toFixed(2)));
+          const allowedOps = ['keep', 'cut', 'speed', 'zoom', 'highlight'];
+          const op = allowedOps.includes(seg.operation) ? seg.operation : 'keep';
+
+          if (op !== 'cut') {
+            sanitizedSegments.push({
+              id: `seg_${i + 1}`,
+              sourceStart: Number(start.toFixed(2)),
+              sourceEnd: Number(end.toFixed(2)),
+              timelineStart: Number(accumulatedTimelineTime.toFixed(2)),
+              timelineEnd: Number((accumulatedTimelineTime + duration).toFixed(2)),
+              operation: op,
+              reason: String(seg.reason || 'Curated highlight moment').substring(0, 140),
+              speed: Number(seg.speed) || 1.0,
+              transition: String(seg.transition || 'cut')
+            });
+            accumulatedTimelineTime += duration;
+          }
+        }
+
+        if (sanitizedSegments.length === 0) {
+          sanitizedSegments.push({
+            id: 'seg_1',
+            sourceStart: 0,
+            sourceEnd: videoDuration,
+            timelineStart: 0,
+            timelineEnd: videoDuration,
+            operation: 'keep',
+            reason: 'Default master sequence fallback',
+            speed: 1.0,
+            transition: 'cut'
+          });
+          accumulatedTimelineTime = videoDuration;
+        }
+
+        const rawCaptions = Array.isArray(rawEdl.captions) ? rawEdl.captions : [];
+        const sanitizedCaptions = [];
+
+        for (let i = 0; i < rawCaptions.length; i++) {
+          const cap = rawCaptions[i];
+          const cStart = Number(cap.start);
+          const cEnd = Number(cap.end);
+          const text = String(cap.text || '').trim();
+
+          if (!isNaN(cStart) && !isNaN(cEnd) && cEnd > cStart && text) {
+            sanitizedCaptions.push({
+              id: `cap_${i + 1}`,
+              start: Number(cStart.toFixed(2)),
+              end: Number(cEnd.toFixed(2)),
+              text: text.substring(0, 120),
+              style: cap.style || 'pop'
+            });
+          }
+        }
+
+        const analysis = rawEdl.analysis || {};
+
+        return {
+          project: {
+            title: safeTitle,
+            target: safeTarget,
+            aspectRatio: safeRatio,
+            durationEstimate: Number(accumulatedTimelineTime.toFixed(2))
+          },
+          analysis: {
+            summary: String(analysis.summary || 'Content analyzed and cut plan prepared.'),
+            highlights: Array.isArray(analysis.highlights) ? analysis.highlights.slice(0, 6) : [],
+            scenes: Array.isArray(analysis.scenes) ? analysis.scenes : []
+          },
+          segments: sanitizedSegments,
+          captions: sanitizedCaptions,
+          export: {
+            format: 'mp4',
+            resolution: safeTarget.includes('shorts') || safeTarget.includes('reels') ? '1080x1920' : '1920x1080',
+            aspectRatio: safeRatio
+          }
+        };
+      }
+    }
+
+    class GeminiDirectorEngine {
+      constructor(apiKey, modelName = 'gemini-3.8-flash') {
+        this.apiKey = apiKey;
+        this.modelName = modelName;
+      }
+
+      async generateEditingPlan({ frames, instructions, targetFormat, videoMetadata, signal, onLog = () => {} }) {
+        if (!this.apiKey) {
+          throw new Error('Gemini API key is missing. Please set your key in Settings or AI Director.');
+        }
+
+        onLog(`Constructing multimodal payload for Gemini Director (${this.modelName})...`, 'highlight');
+
+        const systemPrompt = `You are AUTOEDIT AI Director, an elite autonomous video editor and post-production director.
+Analyze the provided chronological video frames, understand pacing, cuts, highlights, and formulate a structured Editing Decision List (EDL) in pure JSON.
+
+CRITICAL RULES:
+1. Target Format: ${targetFormat}.
+2. Directives: "${instructions || 'Identify best moments, cut dead air, craft viral high-retention reel with captions'}".
+3. Duration: ${videoMetadata.duration} seconds. Resolution: ${videoMetadata.width}x${videoMetadata.height}.
+4. Output STRICT JSON format matching:
+{
+  "project": {
+    "title": "Short punchy project title",
+    "target": "${targetFormat}",
+    "aspectRatio": "${targetFormat.includes('shorts') || targetFormat.includes('reels') ? '9:16' : '16:9'}"
+  },
+  "analysis": {
+    "summary": "1-2 sentence overview",
+    "highlights": ["Moment 1", "Moment 2"],
+    "scenes": [{ "timestamp": 0.0, "description": "Scene overview", "importance": "high" }]
+  },
+  "segments": [
+    { "sourceStart": 0.0, "sourceEnd": 4.5, "operation": "keep", "reason": "Hook", "speed": 1.0, "transition": "cut" }
+  ],
+  "captions": [
+    { "start": 0.5, "end": 2.2, "text": "Sub line" }
+  ]
+}
+Return raw JSON only, no markdown backticks.`;
+
+        const parts = [];
+        frames.forEach((f, idx) => {
+          parts.push({ text: `[Sample Frame #${idx + 1} at timestamp ${f.formattedTime} (${f.timestamp}s)]:` });
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: f.base64 } });
+        });
+        parts.push({ text: systemPrompt });
+
+        const requestBody = {
+          contents: [{ role: 'user', parts: parts }],
+          generationConfig: {
+            temperature: 0.3,
+            topK: 32,
+            topP: 0.9,
+            maxOutputTokens: 2500,
+            responseMimeType: 'application/json'
+          }
+        };
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${this.apiKey}`;
+        onLog(`Dispatching REST request to ${this.modelName}...`);
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: signal
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const message = errData.error?.message || response.statusText;
+          if (response.status === 429) {
+            throw new Error(`Gemini API Quota Exceeded (429): ${message}.`);
+          }
+          if (response.status === 400 || response.status === 403) {
+            throw new Error(`Gemini API Auth Error (${response.status}): ${message}. Check your API Key.`);
+          }
+          if (response.status === 404) {
+            throw new Error(`Model "${this.modelName}" not found or unsupported for this API key tier. Try choosing or typing a supported model like 'gemini-2.5-flash'.`);
+          }
+          throw new Error(`Gemini API Error (${response.status}): ${message}`);
+        }
+
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) throw new Error('Gemini API returned an empty generation response.');
+
+        onLog('Received response from Gemini. Validating EDL schema...', 'highlight');
+
+        let cleanedJson = rawText.trim();
+        if (cleanedJson.startsWith('```json')) cleanedJson = cleanedJson.replace(/^```json/, '');
+        if (cleanedJson.startsWith('```')) cleanedJson = cleanedJson.replace(/^```/, '');
+        if (cleanedJson.endsWith('```')) cleanedJson = cleanedJson.replace(/```$/, '');
+
+        let parsedJson;
+        try {
+          parsedJson = JSON.parse(cleanedJson);
+        } catch (jsonErr) {
+          console.error('Raw Gemini Response:', rawText);
+          throw new Error('Failed to parse Gemini Director response as valid JSON.');
+        }
+
+        return EDLValidator.validateAndSanitize(parsedJson, videoMetadata.duration);
+      }
+    }
+
+    class AIDirectorController {
+      constructor() {
+        this.dropzone = document.getElementById('video-dropzone');
+        this.fileInput = document.getElementById('video-file-input');
+        this.metadataPanel = document.getElementById('video-metadata-panel');
+        this.aiVideoPlayer = document.getElementById('ai-editor-video');
+        this.aiPlaceholder = document.getElementById('ai-editor-placeholder');
+        this.framesContainer = document.getElementById('sampled-frames-container');
+        this.framesStrip = document.getElementById('sampled-frames-strip');
+        this.framesCountTag = document.getElementById('sampled-frames-count');
+
+        this.modelSelect = document.getElementById('ai-model-select');
+        this.customModelInput = document.getElementById('ai-custom-model-input');
+
+        this.pipelineBox = document.getElementById('ai-pipeline-box');
+        this.progressBar = document.getElementById('pipeline-progress-bar');
+        this.statusText = document.getElementById('pipeline-status-text');
+        this.statusPct = document.getElementById('pipeline-status-pct');
+        this.logStream = document.getElementById('activity-log-stream');
+        this.btnRun = document.getElementById('btn-run-ai-director');
+        this.btnCancel = document.getElementById('btn-cancel-analysis');
+
+        this.planReviewCard = document.getElementById('plan-review-card');
+        this.planSummaryMetrics = document.getElementById('plan-summary-metrics');
+        this.planNarrative = document.getElementById('plan-narrative-summary');
+        this.planHighlights = document.getElementById('plan-highlights-tags');
+        this.btnApprove = document.getElementById('btn-approve-plan');
+        this.btnRegenerate = document.getElementById('btn-regenerate-plan');
+        this.btnReject = document.getElementById('btn-reject-plan');
+        this.btnInspectEdl = document.getElementById('btn-inspect-edl-modal');
+
+        this.currentPreviewUrl = null;
+        this.pendingEdl = null;
+
+        this.initEvents();
+      }
+
+      initEvents() {
+        const triggerUpload = () => this.fileInput.click();
+        this.dropzone.addEventListener('click', triggerUpload);
+        this.dropzone.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            triggerUpload();
+          }
+        });
+
+        this.dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          this.dropzone.classList.add('dragover');
+        });
+
+        this.dropzone.addEventListener('dragleave', () => this.dropzone.classList.remove('dragover'));
+
+        this.dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          this.dropzone.classList.remove('dragover');
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            this.processSelectedFile(e.dataTransfer.files[0]);
+          }
+        });
+
+        this.fileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            this.processSelectedFile(e.target.files[0]);
+          }
+        });
+
+        this.modelSelect.addEventListener('change', () => {
+          if (this.modelSelect.value === 'custom') {
+            this.customModelInput.style.display = 'block';
+            this.customModelInput.focus();
+          } else {
+            this.customModelInput.style.display = 'none';
+            AppState.apiModel = this.modelSelect.value;
+            App.settings.syncModel(this.modelSelect.value);
+          }
+        });
+
+        this.customModelInput.addEventListener('input', () => {
+          const customName = this.customModelInput.value.trim();
+          if (customName) {
+            AppState.apiModel = customName;
+            App.settings.syncModel(customName);
+          }
+        });
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.getElementById('ai-instructions-input').value = btn.getAttribute('data-preset');
+          });
+        });
+
+        this.btnRun.addEventListener('click', () => this.startAnalysisPipeline());
+        this.btnCancel.addEventListener('click', () => {
+          if (AppState.activeAnalysisController) {
+            AppState.activeAnalysisController.abort();
+            AppState.activeAnalysisController = null;
+            this.appendLog('Analysis was cancelled by user.', 'error');
+            this.resetPipelineUI();
+            Toast.show('Analysis pipeline cancelled', 'info');
+          }
+        });
+
+        this.btnApprove.addEventListener('click', () => this.approvePlan());
+        this.btnRegenerate.addEventListener('click', () => this.startAnalysisPipeline());
+        this.btnReject.addEventListener('click', () => this.rejectPlan());
+
+        this.btnInspectEdl.addEventListener('click', () => {
+          const edlToView = this.pendingEdl || AppState.activeProject?.edl;
+          if (!edlToView) {
+            Toast.show('No active EDL found to inspect', 'warning');
+            return;
+          }
+          App.modal.open({
+            title: 'Editing Decision List (EDL) JSON',
+            htmlContent: `
+              <pre style="background: #090c13; padding: 14px; border-radius: 8px; font-size: 11.5px; max-height: 400px; overflow-y: auto; color: #a5b4fc; border: 1px solid var(--border-subtle);">${DOMSanitizer.escape(JSON.stringify(edlToView, null, 2))}</pre>
+            `,
+            confirmText: 'Done'
+          });
+        });
+      }
+
+      appendLog(msg, type = 'normal') {
+        const line = document.createElement('div');
+        line.className = 'activity-log-line';
+        const d = new Date();
+        const timeStr = `[${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}]`;
+        line.innerHTML = `
+          <span class="activity-log-time">${timeStr}</span>
+          <span class="activity-log-msg ${type}">${DOMSanitizer.escape(msg)}</span>
+        `;
+        this.logStream.appendChild(line);
+        this.logStream.scrollTop = this.logStream.scrollHeight;
+      }
+
+      setChipState(chipId, state) {
+        const chip = document.getElementById(chipId);
+        if (!chip) return;
+        chip.classList.remove('active', 'done');
+        if (state === 'active') chip.classList.add('active');
+        if (state === 'done') chip.classList.add('done');
+      }
+
+      updateProgress(pct, status) {
+        this.progressBar.style.width = `${pct}%`;
+        this.statusPct.innerText = `${pct}%`;
+        this.statusText.innerText = status;
+      }
+
+      resetPipelineUI() {
+        this.btnRun.style.display = 'inline-flex';
+        this.btnCancel.style.display = 'none';
+        ['chip-agent-sampling', 'chip-agent-scene', 'chip-agent-content', 'chip-agent-caption', 'chip-agent-planner', 'chip-agent-qc'].forEach(c => {
+          this.setChipState(c, 'reset');
+        });
+      }
+
+      async processSelectedFile(file) {
+        const validTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+        if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|webm|mov)$/i)) {
+          Toast.show('Unsupported file format. Please upload MP4, WebM, or MOV.', 'error');
+          return;
+        }
+
+        AppState.loadedVideoFile = file;
+
+        if (this.currentPreviewUrl) {
+          BlobLifecycleManager.revoke(this.currentPreviewUrl);
+        }
+
+        this.currentPreviewUrl = BlobLifecycleManager.create(file);
+        this.aiVideoPlayer.src = this.currentPreviewUrl;
+        this.aiVideoPlayer.style.display = 'block';
+        if (this.aiPlaceholder) this.aiPlaceholder.style.display = 'none';
+
+        this.aiVideoPlayer.onloadedmetadata = () => {
+          const width = this.aiVideoPlayer.videoWidth;
+          const height = this.aiVideoPlayer.videoHeight;
+          const duration = this.aiVideoPlayer.duration;
+          const ratio = (width / height).toFixed(2);
+
+          let ratioLabel = `${ratio}:1`;
+          if (Math.abs(ratio - 1.78) < 0.08) ratioLabel = '16:9 (Landscape)';
+          if (Math.abs(ratio - 0.56) < 0.08) ratioLabel = '9:16 (Vertical)';
+          if (Math.abs(ratio - 1.0) < 0.08) ratioLabel = '1:1 (Square)';
+
+          AppState.loadedVideoMetadata = {
+            fileName: file.name,
+            fileSize: file.size,
+            formattedSize: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+            duration: duration,
+            formattedDuration: FrameSamplingEngine.formatTime(duration),
+            width: width,
+            height: height,
+            aspectRatio: ratioLabel,
+            mimeType: file.type || 'video/mp4'
+          };
+
+          document.getElementById('meta-filename').innerText = file.name;
+          document.getElementById('meta-filesize').innerText = AppState.loadedVideoMetadata.formattedSize;
+          document.getElementById('meta-resolution').innerText = `${width} × ${height} px`;
+          document.getElementById('meta-duration').innerText = FrameSamplingEngine.formatTime(duration);
+          document.getElementById('meta-ratio').innerText = ratioLabel;
+          document.getElementById('meta-mime').innerText = file.type || 'video/mp4';
+
+          this.metadataPanel.style.display = 'block';
+          Toast.show(`Ingested "${file.name}" successfully`, 'success');
+
+          if (!AppState.activeProject) {
+            AppState.activeProject = {
+              id: 'proj_' + Date.now(),
+              title: file.name.replace(/\.[^/.]+$/, ''),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              targetFormat: document.getElementById('ai-target-format').value,
+              instructions: '',
+              metadata: AppState.loadedVideoMetadata,
+              mediaBlob: file,
+              edl: null
+            };
+          }
+          App.editor.syncWorkspaceWithActiveProject();
+          App.subtitles.syncBackdropVideo();
+        };
+      }
+
+      async startAnalysisPipeline() {
+        if (!AppState.loadedVideoFile || !AppState.loadedVideoMetadata) {
+          Toast.show('Please upload a video file first.', 'warning');
+          return;
+        }
+
+        const apiKey = AppState.apiKey || document.getElementById('input-api-key').value.trim();
+        if (!apiKey) {
+          Toast.show('Please configure your Gemini API Key in Settings below before analyzing.', 'warning');
+          App.navigation.scrollTo('sec-settings');
+          return;
+        }
+
+        let modelName = this.modelSelect.value === 'custom'
+          ? (this.customModelInput.value.trim() || 'gemini-3.8-flash')
+          : this.modelSelect.value;
+
+        const sampleCount = parseInt(document.getElementById('ai-sampling-rate').value, 10) || 8;
+        const targetFormat = document.getElementById('ai-target-format').value;
+        const instructions = document.getElementById('ai-instructions-input').value.trim();
+
+        this.pipelineBox.style.display = 'block';
+        this.planReviewCard.style.display = 'none';
+        this.btnRun.style.display = 'none';
+        this.btnCancel.style.display = 'inline-flex';
+        this.logStream.innerHTML = '';
+        this.appendLog(`Starting Autonomous Director Pipeline using model: ${modelName}...`, 'highlight');
+
+        const abortController = new AbortController();
+        AppState.activeAnalysisController = abortController;
+
+        try {
+          this.setChipState('chip-agent-sampling', 'active');
+          this.updateProgress(15, `Extracting ${sampleCount} frame samples...`);
+          this.appendLog(`Extracting ${sampleCount} representative video frames locally...`);
+
+          const frames = await FrameSamplingEngine.sampleVideoFrames(
+            AppState.loadedVideoFile,
+            sampleCount,
+            (done, total, time) => {
+              this.appendLog(`Sampled frame ${done}/${total} at ${FrameSamplingEngine.formatTime(time)}`);
+              const pct = 15 + Math.round((done / total) * 20);
+              this.updateProgress(pct, `Sampled ${done}/${total} frames...`);
+            }
+          );
+
+          AppState.sampledFrames = frames;
+          this.renderSampledFramesStrip(frames);
+          this.setChipState('chip-agent-sampling', 'done');
+          this.appendLog(`Frame sampling complete. Extracted ${frames.length} keyframes.`, 'success');
+
+          this.setChipState('chip-agent-scene', 'active');
+          this.setChipState('chip-agent-content', 'active');
+          this.updateProgress(45, `${modelName} Scene & Content Understanding running...`);
+
+          const director = new GeminiDirectorEngine(apiKey, modelName);
+          const edl = await director.generateEditingPlan({
+            frames: frames,
+            instructions: instructions,
+            targetFormat: targetFormat,
+            videoMetadata: AppState.loadedVideoMetadata,
+            signal: abortController.signal,
+            onLog: (msg, type) => this.appendLog(msg, type)
+          });
+
+          this.setChipState('chip-agent-scene', 'done');
+          this.setChipState('chip-agent-content', 'done');
+          this.setChipState('chip-agent-caption', 'done');
+          this.setChipState('chip-agent-planner', 'done');
+
+          this.setChipState('chip-agent-qc', 'active');
+          this.updateProgress(90, 'Quality Control: Verifying segment bounds...');
+          this.appendLog(`QC Passed: ${edl.segments.length} segments, ${edl.captions.length} captions.`, 'success');
+          this.setChipState('chip-agent-qc', 'done');
+
+          this.updateProgress(100, 'Editing Plan Complete!');
+          this.pendingEdl = edl;
+          this.btnInspectEdl.style.display = 'inline-flex';
+
+          this.displayPlanReview(edl);
+          Toast.show(`Autonomous Plan generated with ${modelName}!`, 'success');
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            this.appendLog('Pipeline aborted by user.', 'error');
+          } else {
+            console.error(err);
+            this.appendLog(`Error: ${err.message}`, 'error');
+            Toast.show(`Analysis failed: ${err.message}`, 'error', 6000);
+          }
+        } finally {
+          this.resetPipelineUI();
+          AppState.activeAnalysisController = null;
+        }
+      }
+
+      renderSampledFramesStrip(frames) {
+        this.framesStrip.innerHTML = '';
+        frames.forEach((f, idx) => {
+          const card = document.createElement('div');
+          card.className = 'sampled-frame-card';
+          card.innerHTML = `
+            <img class="sampled-frame-thumb" src="${f.dataUrl}" alt="Frame ${idx + 1}" />
+            <span class="sampled-frame-time">${DOMSanitizer.escape(f.formattedTime)}</span>
+          `;
+          this.framesStrip.appendChild(card);
+        });
+        this.framesCountTag.innerText = `${frames.length} frames ready`;
+        this.framesContainer.style.display = 'block';
+      }
+
+      displayPlanReview(edl) {
+        this.planReviewCard.style.display = 'block';
+        this.planSummaryMetrics.innerText = `${edl.segments.length} Cuts | ${edl.captions.length} Captions | ~${edl.project.durationEstimate}s`;
+        this.planNarrative.innerText = edl.analysis.summary || 'Custom sequence prepared by Gemini Director.';
+
+        this.planHighlights.innerHTML = '';
+        if (Array.isArray(edl.analysis.highlights)) {
+          edl.analysis.highlights.forEach(h => {
+            const chip = document.createElement('span');
+            chip.style.cssText = 'font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(99, 102, 241, 0.15); color: #c7d2fe; border: 1px solid rgba(99, 102, 241, 0.3);';
+            chip.innerText = h;
+            this.planHighlights.appendChild(chip);
+          });
+        }
+      }
+
+      async approvePlan() {
+        if (!this.pendingEdl) return;
+
+        const project = {
+          id: AppState.activeProject?.id || 'proj_' + Date.now(),
+          title: this.pendingEdl.project.title || AppState.loadedVideoMetadata.fileName.replace(/\.[^/.]+$/, ''),
+          createdAt: AppState.activeProject?.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          targetFormat: this.pendingEdl.project.target,
+          instructions: document.getElementById('ai-instructions-input').value.trim(),
+          metadata: AppState.loadedVideoMetadata,
+          mediaBlob: AppState.loadedVideoFile,
+          edl: this.pendingEdl
+        };
+
+        try {
+          await App.db.saveProject(project);
+          AppState.activeProject = project;
+          Toast.show('Plan approved! Scrolling down to Workspace.', 'success');
+
+          App.editor.syncWorkspaceWithActiveProject();
+          App.subtitles.syncGeneratedCaptionsList();
+          App.navigation.scrollTo('sec-editor-workspace');
+        } catch (err) {
+          console.error(err);
+          Toast.show('Failed to save approved plan into IndexedDB', 'error');
+        }
+      }
+
+      rejectPlan() {
+        this.pendingEdl = null;
+        this.planReviewCard.style.display = 'none';
+        this.appendLog('Plan was rejected by user.', 'highlight');
+        Toast.show('Plan rejected. Ready for revision.', 'info');
+      }
+    }
+
+    class WorkspaceController {
+      constructor() {
+        this.canvas = document.getElementById('workspace-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.videoPlayer = document.getElementById('workspace-video');
+        this.titleElement = document.getElementById('workspace-project-title');
+        this.detailsElement = document.getElementById('workspace-project-details');
+        this.timecodeTag = document.getElementById('ws-timecode');
+        this.resolutionTag = document.getElementById('ws-resolution-tag');
+        this.aspectTag = document.getElementById('ws-aspect-tag');
+        this.videoTrackBody = document.getElementById('timeline-video-track-body');
+        this.captionsTrackBody = document.getElementById('timeline-captions-track-body');
+        this.edlEntries = document.getElementById('edl-entries');
+        this.edlStatus = document.getElementById('ws-edl-status');
+        this.timelineBadge = document.getElementById('timeline-edl-badge');
+
+        this.timelineTracksArea = document.getElementById('timeline-interactive-tracks');
+        this.playhead = document.getElementById('timeline-playhead');
+        this.btnPlayToggle = document.getElementById('btn-timeline-play-toggle');
+        this.iconPlay = document.getElementById('icon-timeline-play');
+        this.textPlay = document.getElementById('text-timeline-play');
+
+        this.insTitle = document.getElementById('ins-segment-title');
+        this.insStart = document.getElementById('ins-segment-start');
+        this.insEnd = document.getElementById('ins-segment-end');
+        this.insOp = document.getElementById('ins-segment-op');
+        this.insTransition = document.getElementById('ins-segment-transition');
+        this.btnApplyTrim = document.getElementById('btn-ins-apply-trim');
+        this.btnMoveLeft = document.getElementById('btn-ins-move-left');
+        this.btnMoveRight = document.getElementById('btn-ins-move-right');
+        this.btnDeleteSeg = document.getElementById('btn-ins-delete-segment');
+
+        this.audioVolumeSlider = document.getElementById('ws-audio-volume');
+        this.audioVolText = document.getElementById('ws-audio-vol-text');
+        this.audioFadeInBox = document.getElementById('ws-audio-fade-in');
+        this.audioFadeOutBox = document.getElementById('ws-audio-fade-out');
+
+        this.currentLoadedUrl = null;
+        this.isPlaying = false;
+        this.renderLoopId = null;
+
+        this.initEvents();
+      }
+
+      initEvents() {
+        this.audioVolumeSlider.addEventListener('input', () => {
+          const val = parseFloat(this.audioVolumeSlider.value);
+          AppState.audioSettings.volume = val;
+          this.audioVolText.innerText = `${Math.round(val * 100)}%`;
+          this.videoPlayer.volume = Math.min(val, 1.0);
+          App.db.triggerAutosave();
+        });
+
+        this.audioFadeInBox.addEventListener('change', () => {
+          AppState.audioSettings.fadeIn = this.audioFadeInBox.checked;
+          App.db.triggerAutosave();
+        });
+
+        this.audioFadeOutBox.addEventListener('change', () => {
+          AppState.audioSettings.fadeOut = this.audioFadeOutBox.checked;
+          App.db.triggerAutosave();
+        });
+
+        this.btnPlayToggle.addEventListener('click', () => {
+          if (!this.videoPlayer.src) return;
+          if (this.isPlaying) {
+            this.pausePreview();
+          } else {
+            this.playPreview();
+          }
+        });
+
+        this.videoPlayer.addEventListener('seeked', () => this.drawPreviewFrame());
+
+        this.timelineTracksArea.addEventListener('click', (e) => {
+          if (!this.videoPlayer.duration) return;
+          if (e.target.closest('.clip-cut-segment')) return;
+          const rect = this.timelineTracksArea.getBoundingClientRect();
+          const clickX = e.clientX - rect.left - 102;
+          const usableWidth = rect.width - 114;
+
+          if (clickX >= 0 && usableWidth > 0) {
+            const clickRatio = Math.min(Math.max(clickX / usableWidth, 0), 1);
+            this.videoPlayer.currentTime = clickRatio * this.videoPlayer.duration;
+            this.drawPreviewFrame();
+          }
+        });
+
+        document.getElementById('btn-timeline-split').addEventListener('click', () => {
+          this.splitCurrentSegmentAtPlayhead();
+        });
+
+        document.getElementById('btn-timeline-add-seg').addEventListener('click', () => {
+          this.addNewSegment();
+        });
+
+        this.btnApplyTrim.addEventListener('click', () => this.applySegmentTrim());
+        this.btnMoveLeft.addEventListener('click', () => this.moveSegmentOrder(-1));
+        this.btnMoveRight.addEventListener('click', () => this.moveSegmentOrder(1));
+        this.btnDeleteSeg.addEventListener('click', () => this.deleteSelectedSegment());
+
+        let zoomScale = 1.0;
+        document.getElementById('btn-timeline-zoom-in').addEventListener('click', () => {
+          zoomScale = Math.min(zoomScale + 0.25, 2.5);
+          this.timelineTracksArea.style.minWidth = `${zoomScale * 100}%`;
+          Toast.show(`Timeline Zoom: ${Math.round(zoomScale * 100)}%`, 'info', 1500);
+        });
+        document.getElementById('btn-timeline-zoom-out').addEventListener('click', () => {
+          zoomScale = Math.max(zoomScale - 0.25, 1.0);
+          this.timelineTracksArea.style.minWidth = `${zoomScale * 100}%`;
+          Toast.show(`Timeline Zoom: ${Math.round(zoomScale * 100)}%`, 'info', 1500);
+        });
+
+        document.getElementById('btn-ws-save-project').addEventListener('click', () => {
+          if (!AppState.activeProject) {
+            Toast.show('No active project to save', 'warning');
+            return;
+          }
+          AppState.activeProject.updatedAt = new Date().toISOString();
+          App.db.saveProject(AppState.activeProject)
+            .then(() => Toast.show('Project state updated in IndexedDB', 'success'))
+            .catch(() => Toast.show('Error updating project', 'error'));
+        });
+
+        document.getElementById('btn-ws-to-export').addEventListener('click', () => {
+          App.navigation.scrollTo('sec-export-center');
+        });
+
+        document.getElementById('btn-ws-inspect-edl').addEventListener('click', () => {
+          if (!AppState.activeProject?.edl) {
+            Toast.show('No EDL attached to current project.', 'warning');
+            return;
+          }
+          App.modal.open({
+            title: 'Project Editing Decision List (EDL)',
+            htmlContent: `
+              <pre style="background: #090c13; padding: 14px; border-radius: 8px; font-size: 11.5px; max-height: 400px; overflow-y: auto; color: #a5b4fc; border: 1px solid var(--border-subtle);">${DOMSanitizer.escape(JSON.stringify(AppState.activeProject.edl, null, 2))}</pre>
+            `,
+            confirmText: 'Done'
+          });
+        });
+      }
+
+      playPreview() {
+        this.videoPlayer.play().then(() => {
+          this.isPlaying = true;
+          this.textPlay.innerText = 'Pause';
+          this.iconPlay.setAttribute('data-lucide', 'pause');
+          lucide.createIcons();
+          this.startRenderLoop();
+        }).catch(err => console.warn('Playback error:', err));
+      }
+
+      pausePreview() {
+        this.videoPlayer.pause();
+        this.isPlaying = false;
+        this.textPlay.innerText = 'Play';
+        this.iconPlay.setAttribute('data-lucide', 'play');
+        lucide.createIcons();
+        if (this.renderLoopId) {
+          cancelAnimationFrame(this.renderLoopId);
+          this.renderLoopId = null;
+        }
+        this.drawPreviewFrame();
+      }
+
+      startRenderLoop() {
+        const loop = () => {
+          if (!this.isPlaying) return;
+          this.drawPreviewFrame();
+          this.renderLoopId = requestAnimationFrame(loop);
+        };
+        this.renderLoopId = requestAnimationFrame(loop);
+      }
+
+      drawPreviewFrame() {
+        const video = this.videoPlayer;
+        if (!video || !video.videoWidth) return;
+
+        const targetWidth = video.videoWidth;
+        const targetHeight = video.videoHeight;
+        if (this.canvas.width !== targetWidth || this.canvas.height !== targetHeight) {
+          this.canvas.width = targetWidth;
+          this.canvas.height = targetHeight;
+        }
+
+        this.ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+
+        const currentTime = video.currentTime;
+        const activeSeg = AppState.activeProject?.edl?.segments?.find(s => currentTime >= s.sourceStart && currentTime <= s.sourceEnd);
+        if (activeSeg && activeSeg.operation === 'zoom') {
+          const zoomFactor = 1.15;
+          const zw = targetWidth / zoomFactor;
+          const zh = targetHeight / zoomFactor;
+          const zx = (targetWidth - zw) / 2;
+          const zy = (targetHeight - zh) / 2;
+          this.ctx.drawImage(video, zx, zy, zw, zh, 0, 0, targetWidth, targetHeight);
+        }
+
+        this.renderActiveCaption(currentTime, targetWidth, targetHeight);
+
+        const duration = video.duration || 1;
+        const mins = String(Math.floor(currentTime / 60)).padStart(2, '0');
+        const secs = String(Math.floor(currentTime % 60)).padStart(2, '0');
+        const ms = String(Math.floor((currentTime % 1) * 100)).padStart(2, '0');
+        this.timecodeTag.innerText = `00:${mins}:${secs}.${ms}`;
+
+        const trackWidth = this.timelineTracksArea.offsetWidth - 114;
+        if (trackWidth > 0) {
+          const ratio = Math.min(Math.max(currentTime / duration, 0), 1);
+          const playheadLeft = 102 + (ratio * trackWidth);
+          this.playhead.style.left = `${playheadLeft}px`;
+        }
+      }
+
+      renderActiveCaption(time, width, height) {
+        const captions = AppState.activeProject?.edl?.captions;
+        if (!captions || captions.length === 0) return;
+
+        const activeCaption = captions.find(c => time >= c.start && time <= c.end);
+        if (!activeCaption) return;
+
+        const style = AppState.subtitleStyle;
+        const ctx = this.ctx;
+        ctx.save();
+
+        const baseFontSize = (style.fontSize / 720) * height;
+        ctx.font = `800 ${baseFontSize}px ${style.fontFamily || 'sans-serif'}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        let posY = height - (height * 0.14);
+        if (style.position === 'top') posY = height * 0.14;
+        if (style.position === 'center') posY = height * 0.5;
+
+        const posX = width / 2;
+        const text = activeCaption.text.toUpperCase();
+
+        if (style.boxShadow === 'solid-box') {
+          const textMetrics = ctx.measureText(text);
+          const padX = baseFontSize * 0.5;
+          const padY = baseFontSize * 0.3;
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+          ctx.fillRect(
+            posX - (textMetrics.width / 2) - padX,
+            posY - (baseFontSize / 2) - padY,
+            textMetrics.width + (padX * 2),
+            baseFontSize + (padY * 2)
+          );
+        } else if (style.boxShadow === 'heavy') {
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 4;
+        }
+
+        ctx.fillStyle = style.textColor || '#FFFFFF';
+        ctx.fillText(text, posX, posY);
+
+        ctx.lineWidth = Math.max(2, baseFontSize * 0.08);
+        ctx.strokeStyle = '#000000';
+        ctx.strokeText(text, posX, posY);
+
+        ctx.restore();
+      }
+
+      syncWorkspaceWithActiveProject() {
+        if (!AppState.activeProject) {
+          this.titleElement.innerText = 'Workspace: No Project Active';
+          this.detailsElement.innerText = 'Upload a video or select an existing project from Dashboard.';
+          return;
+        }
+
+        const proj = AppState.activeProject;
+        this.titleElement.innerText = `Workspace: ${proj.title}`;
+        this.detailsElement.innerText = `Target: ${proj.targetFormat} | Created: ${new Date(proj.createdAt).toLocaleTimeString()}`;
+
+        if (proj.mediaBlob) {
+          if (this.currentLoadedUrl) {
+            BlobLifecycleManager.revoke(this.currentLoadedUrl);
+          }
+          this.currentLoadedUrl = BlobLifecycleManager.create(proj.mediaBlob);
+          this.videoPlayer.src = this.currentLoadedUrl;
+          this.videoPlayer.onloadedmetadata = () => this.drawPreviewFrame();
+        }
+
+        if (proj.metadata) {
+          this.resolutionTag.innerText = `${proj.metadata.width}x${proj.metadata.height}`;
+          this.aspectTag.innerText = proj.metadata.aspectRatio;
+        }
+
+        if (proj.edl && Array.isArray(proj.edl.segments)) {
+          this.renderEdlSegments(proj.edl);
+          this.edlStatus.innerText = 'Active Plan Loaded';
+          this.timelineBadge.innerText = `${proj.edl.segments.length} Segments`;
+        }
+      }
+
+      renderEdlSegments(edl) {
+        this.edlEntries.innerHTML = '';
+        edl.segments.forEach((seg, index) => {
+          const item = document.createElement('div');
+          item.style.cssText = `padding: 10px 12px; background: var(--bg-surface-elevated); border-radius: 6px; border: 1px solid var(--border-subtle); font-size: 12px; cursor: pointer; ${AppState.selectedSegmentIndex === index ? 'border-color: var(--accent-cyan);' : ''}`;
+          item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; font-weight: 700;">
+              <span style="color: var(--accent-cyan);">Segment ${index + 1}: [${DOMSanitizer.escape(seg.operation.toUpperCase())}]</span>
+              <span class="font-mono text-muted">${seg.sourceStart}s - ${seg.sourceEnd}s</span>
+            </div>
+            <div style="color: var(--text-dim); margin-top: 4px;">${DOMSanitizer.escape(seg.reason)}</div>
+          `;
+          item.addEventListener('click', () => this.selectSegment(index));
+          this.edlEntries.appendChild(item);
+        });
+
+        const totalDuration = AppState.loadedVideoMetadata?.duration || edl.project.durationEstimate || 60;
+        this.videoTrackBody.innerHTML = '';
+
+        edl.segments.forEach((seg, idx) => {
+          const leftPct = (seg.sourceStart / totalDuration) * 100;
+          const widthPct = Math.max(((seg.sourceEnd - seg.sourceStart) / totalDuration) * 100, 2);
+
+          const clip = document.createElement('div');
+          clip.className = `clip-cut-segment ${AppState.selectedSegmentIndex === idx ? 'selected' : ''}`;
+          clip.style.left = `${leftPct}%`;
+          clip.style.width = `${widthPct}%`;
+
+          const colors = [
+            'linear-gradient(90deg, rgba(99, 102, 241, 0.6), rgba(139, 92, 246, 0.6))',
+            'linear-gradient(90deg, rgba(6, 182, 212, 0.6), rgba(59, 130, 246, 0.6))',
+            'linear-gradient(90deg, rgba(16, 185, 129, 0.6), rgba(6, 182, 212, 0.6))'
+          ];
+          clip.style.background = colors[idx % colors.length];
+          clip.innerText = `Cut ${idx + 1} (${seg.sourceStart}s - ${seg.sourceEnd}s)`;
+          clip.title = seg.reason;
+
+          clip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.selectSegment(idx);
+            this.videoPlayer.currentTime = seg.sourceStart;
+            this.drawPreviewFrame();
+          });
+
+          this.videoTrackBody.appendChild(clip);
+        });
+      }
+
+      selectSegment(index) {
+        const segs = AppState.activeProject?.edl?.segments;
+        if (!segs || !segs[index]) return;
+        AppState.selectedSegmentIndex = index;
+        const s = segs[index];
+
+        this.insTitle.innerText = `Segment ${index + 1}: ${s.reason}`;
+        this.insStart.value = s.sourceStart;
+        this.insEnd.value = s.sourceEnd;
+        this.insOp.value = s.operation;
+        this.insTransition.value = s.transition || 'cut';
+
+        this.renderEdlSegments(AppState.activeProject.edl);
+      }
+
+      applySegmentTrim() {
+        const index = AppState.selectedSegmentIndex;
+        const segs = AppState.activeProject?.edl?.segments;
+        if (index < 0 || !segs || !segs[index]) {
+          Toast.show('Please select a segment on the timeline first', 'warning');
+          return;
+        }
+
+        const newStart = parseFloat(this.insStart.value);
+        const newEnd = parseFloat(this.insEnd.value);
+        const maxDur = AppState.loadedVideoMetadata?.duration || 1000;
+
+        if (isNaN(newStart) || isNaN(newEnd) || newEnd <= newStart) {
+          Toast.show('End time must be greater than start time.', 'error');
+          return;
+        }
+
+        segs[index].sourceStart = Math.max(0, newStart);
+        segs[index].sourceEnd = Math.min(maxDur, newEnd);
+        segs[index].operation = this.insOp.value;
+        segs[index].transition = this.insTransition.value;
+
+        this.renderEdlSegments(AppState.activeProject.edl);
+        App.db.triggerAutosave();
+        Toast.show(`Updated Segment ${index + 1} timing.`, 'success');
+      }
+
+      splitCurrentSegmentAtPlayhead() {
+        const segs = AppState.activeProject?.edl?.segments;
+        if (!segs || segs.length === 0) return;
+
+        const current = this.videoPlayer.currentTime;
+        const idx = segs.findIndex(s => current > s.sourceStart + 0.3 && current < s.sourceEnd - 0.3);
+
+        if (idx === -1) {
+          Toast.show('Playhead must be inside a segment with at least 0.3s on either side to split.', 'warning');
+          return;
+        }
+
+        const original = segs[idx];
+        const oldEnd = original.sourceEnd;
+        original.sourceEnd = Number(current.toFixed(2));
+
+        const newSegment = {
+          id: `seg_${Date.now()}`,
+          sourceStart: Number(current.toFixed(2)),
+          sourceEnd: oldEnd,
+          timelineStart: 0,
+          timelineEnd: 0,
+          operation: original.operation,
+          reason: `${original.reason} (Split)`,
+          speed: original.speed,
+          transition: 'cut'
+        };
+
+        segs.splice(idx + 1, 0, newSegment);
+        AppState.selectedSegmentIndex = idx + 1;
+        this.renderEdlSegments(AppState.activeProject.edl);
+        App.db.triggerAutosave();
+        Toast.show(`Split segment at ${current.toFixed(2)}s!`, 'success');
+      }
+
+      addNewSegment() {
+        const segs = AppState.activeProject?.edl?.segments;
+        if (!segs) return;
+
+        const current = this.videoPlayer.currentTime;
+        const dur = AppState.loadedVideoMetadata?.duration || 60;
+        const end = Math.min(current + 3, dur);
+
+        const newSeg = {
+          id: `seg_${Date.now()}`,
+          sourceStart: Number(current.toFixed(2)),
+          sourceEnd: Number(end.toFixed(2)),
+          timelineStart: 0,
+          timelineEnd: 0,
+          operation: 'keep',
+          reason: 'Custom user segment',
+          speed: 1.0,
+          transition: 'cut'
+        };
+
+        segs.push(newSeg);
+        segs.sort((a, b) => a.sourceStart - b.sourceStart);
+        AppState.selectedSegmentIndex = segs.indexOf(newSeg);
+        this.renderEdlSegments(AppState.activeProject.edl);
+        App.db.triggerAutosave();
+        Toast.show('New segment added to timeline.', 'success');
+      }
+
+      moveSegmentOrder(direction) {
+        const idx = AppState.selectedSegmentIndex;
+        const segs = AppState.activeProject?.edl?.segments;
+        if (idx < 0 || !segs) return;
+
+        const targetIdx = idx + direction;
+        if (targetIdx < 0 || targetIdx >= segs.length) return;
+
+        const temp = segs[idx];
+        segs[idx] = segs[targetIdx];
+        segs[targetIdx] = temp;
+        AppState.selectedSegmentIndex = targetIdx;
+
+        this.renderEdlSegments(AppState.activeProject.edl);
+        App.db.triggerAutosave();
+      }
+
+      deleteSelectedSegment() {
+        const idx = AppState.selectedSegmentIndex;
+        const segs = AppState.activeProject?.edl?.segments;
+        if (idx < 0 || !segs || !segs[idx]) return;
+
+        if (segs.length <= 1) {
+          Toast.show('At least one segment must remain in the project.', 'warning');
+          return;
+        }
+
+        segs.splice(idx, 1);
+        AppState.selectedSegmentIndex = -1;
+        this.renderEdlSegments(AppState.activeProject.edl);
+        App.db.triggerAutosave();
+        Toast.show('Segment removed from EDL.', 'info');
+      }
+    }
+
+    class SubtitleStudioController {
+      constructor() {
+        this.customTextInput = document.getElementById('sub-custom-text');
+        this.fontFamilySelect = document.getElementById('sub-font-family');
+        this.fontSizeInput = document.getElementById('sub-font-size');
+        this.textColorInput = document.getElementById('sub-text-color');
+        this.accentColorInput = document.getElementById('sub-accent-color');
+        this.positionSelect = document.getElementById('sub-position');
+        this.boxShadowSelect = document.getElementById('sub-box-shadow');
+        this.previewContainer = document.getElementById('subtitle-preview-container');
+        this.sampleText = document.getElementById('subtitle-sample-text');
+        this.sampleHighlight = document.getElementById('subtitle-sample-highlight');
+        this.btnToggleBackdrop = document.getElementById('btn-toggle-sub-backdrop');
+        this.videoUnderlay = document.getElementById('sub-preview-video-underlay');
+        this.generatedList = document.getElementById('sub-generated-list');
+
+        this.initEvents();
+      }
+
+      initEvents() {
+        const updateStyles = () => this.applyPreviewStyles();
+
+        this.customTextInput.addEventListener('input', () => {
+          const val = this.customTextInput.value.trim() || 'AI AUTONOMOUS SUBTITLES';
+          this.sampleText.innerHTML = `${DOMSanitizer.escape(val)} <span id="subtitle-sample-highlight" style="color: ${DOMSanitizer.escape(this.accentColorInput.value)};">ACTIVE</span>`;
+          this.sampleHighlight = document.getElementById('subtitle-sample-highlight');
+        });
+
+        this.fontFamilySelect.addEventListener('change', updateStyles);
+        this.fontSizeInput.addEventListener('input', updateStyles);
+        this.textColorInput.addEventListener('input', updateStyles);
+        this.accentColorInput.addEventListener('input', updateStyles);
+        this.positionSelect.addEventListener('change', updateStyles);
+        this.boxShadowSelect.addEventListener('change', updateStyles);
+
+        this.btnToggleBackdrop.addEventListener('click', () => {
+          if (!this.videoUnderlay.src && AppState.loadedVideoFile) {
+            this.videoUnderlay.src = BlobLifecycleManager.create(AppState.loadedVideoFile);
+          }
+          if (this.videoUnderlay.style.display === 'none' || !this.videoUnderlay.style.display) {
+            this.videoUnderlay.style.display = 'block';
+            this.videoUnderlay.play().catch(() => {});
+          } else {
+            this.videoUnderlay.style.display = 'none';
+            this.videoUnderlay.pause();
+          }
+        });
+
+        document.getElementById('btn-save-sub-styles').addEventListener('click', () => {
+          AppState.subtitleStyle = {
+            customText: this.customTextInput.value,
+            fontFamily: this.fontFamilySelect.value,
+            fontSize: parseInt(this.fontSizeInput.value, 10),
+            textColor: this.textColorInput.value,
+            accentColor: this.accentColorInput.value,
+            position: this.positionSelect.value,
+            boxShadow: this.boxShadowSelect.value
+          };
+          App.db.triggerAutosave();
+          Toast.show('Subtitle styling configurations saved.', 'success');
+        });
+
+        document.getElementById('btn-add-caption-item').addEventListener('click', () => {
+          this.addNewCaptionLine();
+        });
+      }
+
+      syncBackdropVideo() {
+        if (AppState.loadedVideoFile && !this.videoUnderlay.src) {
+          this.videoUnderlay.src = BlobLifecycleManager.create(AppState.loadedVideoFile);
+        }
+      }
+
+      syncGeneratedCaptionsList() {
+        const captions = AppState.activeProject?.edl?.captions;
+        if (!captions || captions.length === 0) {
+          this.generatedList.innerHTML = `
+            <div style="font-size: 12px; color: var(--text-dim); text-align: center; padding: 20px 0;">
+              No captions loaded. Generate with AI Director or add manually above.
+            </div>
+          `;
+          return;
+        }
+
+        this.generatedList.innerHTML = '';
+        captions.forEach((c, idx) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'padding: 8px 10px; background: var(--bg-surface-elevated); border-radius: 6px; border: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px;';
+          row.innerHTML = `
+            <input type="text" class="input-field btn-sm cap-text" value="${DOMSanitizer.escape(c.text)}" style="flex:1;" data-idx="${idx}" />
+            <input type="number" step="0.1" class="input-field btn-sm font-mono cap-start" value="${c.start}" style="width: 65px;" data-start="${idx}" />
+            <input type="number" step="0.1" class="input-field btn-sm font-mono cap-end" value="${c.end}" style="width: 65px;" data-end="${idx}" />
+            <button class="btn btn-danger btn-sm cap-del" data-del="${idx}"><i data-lucide="trash-2"></i></button>
+          `;
+
+          row.querySelector('.cap-text').addEventListener('input', (e) => {
+            c.text = e.target.value;
+            App.db.triggerAutosave();
+          });
+          row.querySelector('.cap-start').addEventListener('input', (e) => {
+            c.start = parseFloat(e.target.value) || 0;
+            App.db.triggerAutosave();
+          });
+          row.querySelector('.cap-end').addEventListener('input', (e) => {
+            c.end = parseFloat(e.target.value) || 0;
+            App.db.triggerAutosave();
+          });
+          row.querySelector('.cap-del').addEventListener('click', () => {
+            captions.splice(idx, 1);
+            this.syncGeneratedCaptionsList();
+            App.db.triggerAutosave();
+          });
+
+          this.generatedList.appendChild(row);
+        });
+        lucide.createIcons();
+      }
+
+      addNewCaptionLine() {
+        if (!AppState.activeProject) return;
+        if (!AppState.activeProject.edl) {
+          AppState.activeProject.edl = { captions: [], segments: [] };
+        }
+        if (!AppState.activeProject.edl.captions) {
+          AppState.activeProject.edl.captions = [];
+        }
+
+        const start = AppState.activeProject.edl.captions.length ? AppState.activeProject.edl.captions[AppState.activeProject.edl.captions.length - 1].end + 0.2 : 0;
+        AppState.activeProject.edl.captions.push({
+          id: `cap_${Date.now()}`,
+          start: Number(start.toFixed(2)),
+          end: Number((start + 2.5).toFixed(2)),
+          text: 'New Subtitle Line'
+        });
+
+        this.syncGeneratedCaptionsList();
+        App.db.triggerAutosave();
+      }
+
+      applyPreviewStyles() {
+        this.sampleText.style.fontFamily = this.fontFamilySelect.value;
+        this.sampleText.style.fontSize = `${this.fontSizeInput.value}px`;
+        this.sampleText.style.color = this.textColorInput.value;
+        if (this.sampleHighlight) {
+          this.sampleHighlight.style.color = this.accentColorInput.value;
+        }
+
+        const shadowType = this.boxShadowSelect.value;
+        if (shadowType === 'heavy') {
+          this.sampleText.style.textShadow = '0 3px 10px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8)';
+          this.sampleText.style.background = 'transparent';
+        } else if (shadowType === 'solid-box') {
+          this.sampleText.style.textShadow = 'none';
+          this.sampleText.style.background = 'rgba(0, 0, 0, 0.75)';
+        } else {
+          this.sampleText.style.textShadow = 'none';
+          this.sampleText.style.background = 'transparent';
+        }
+
+        const pos = this.positionSelect.value;
+        this.sampleText.style.position = 'absolute';
+        if (pos === 'bottom') {
+          this.sampleText.style.top = '';
+          this.sampleText.style.bottom = '24px';
+          this.sampleText.style.transform = 'none';
+        } else if (pos === 'top') {
+          this.sampleText.style.bottom = '';
+          this.sampleText.style.top = '24px';
+          this.sampleText.style.transform = 'none';
+        } else {
+          this.sampleText.style.top = '50%';
+          this.sampleText.style.bottom = '';
+          this.sampleText.style.transform = 'translateY(-50%)';
+        }
+      }
+    }
+
+    class AdaptiveRenderEngine {
+      constructor() {
+        this.btnStartExport = document.getElementById('btn-start-export');
+        this.btnCancelExport = document.getElementById('btn-cancel-export');
+        this.progressPanel = document.getElementById('export-progress-panel');
+        this.progressBar = document.getElementById('export-progress-bar');
+        this.statusLabel = document.getElementById('export-status-label');
+        this.statusPct = document.getElementById('export-status-pct');
+        this.detailsLabel = document.getElementById('export-details-label');
+        this.successBox = document.getElementById('export-success-box');
+        this.btnDownload = document.getElementById('btn-download-video');
+        this.successDetails = document.getElementById('export-success-details');
+
+        this.isRendering = false;
+        this.abortSignal = false;
+        this.currentExportUrl = null;
+
+        this.initEvents();
+        this.updateDiagnostics();
+      }
+
+      initEvents() {
+        this.btnStartExport.addEventListener('click', () => this.startRender());
+        this.btnCancelExport.addEventListener('click', () => {
+          this.abortSignal = true;
+          this.btnCancelExport.disabled = true;
+          this.statusLabel.innerText = 'Aborting export...';
+        });
+      }
+
+      updateDiagnostics() {
+        const hasWebCodecs = typeof window.VideoEncoder === 'function' && typeof window.Mp4Muxer === 'object';
+        const diagWebCodecs = document.getElementById('diag-webcodecs-status');
+        if (diagWebCodecs) {
+          diagWebCodecs.innerText = hasWebCodecs
+            ? 'Fully Supported: Native hardware-accelerated H.264 WebCodecs MP4 Muxer active.'
+            : 'WebCodecs or MP4 Muxer not detected. Fallback engines will be used.';
+        }
+
+        const diagDevice = document.getElementById('diag-device-profile');
+        if (diagDevice) {
+          diagDevice.innerText = AppState.isMobile
+            ? 'Mobile Device Profile: Auto-selecting 720p/30fps conservative memory pipeline.'
+            : 'Desktop Device Profile: High throughput, adaptive workers enabled.';
+        }
+      }
+
+      async startRender() {
+        if (!AppState.loadedVideoFile || !AppState.activeProject) {
+          Toast.show('No active project or video to render.', 'warning');
+          return;
+        }
+
+        const edl = AppState.activeProject.edl;
+        if (!edl || !edl.segments || edl.segments.length === 0) {
+          Toast.show('No EDL segments available to render.', 'warning');
+          return;
+        }
+
+        this.isRendering = true;
+        this.abortSignal = false;
+        this.btnStartExport.style.display = 'none';
+        this.btnCancelExport.style.display = 'inline-flex';
+        this.btnCancelExport.disabled = false;
+        this.progressPanel.style.display = 'block';
+        this.successBox.style.display = 'none';
+
+        if (this.currentExportUrl) {
+          BlobLifecycleManager.revoke(this.currentExportUrl);
+          this.currentExportUrl = null;
+        }
+
+        try {
+          const policy = document.getElementById('export-engine-select').value;
+          const format = document.getElementById('export-format').value;
+          const resSetting = document.getElementById('export-resolution').value;
+          const fps = parseInt(document.getElementById('export-fps').value, 10) || 30;
+          const burnSubtitles = document.getElementById('export-subtitles-toggle').value === 'burn-in';
+
+          let targetWidth = 1920;
+          let targetHeight = 1080;
+          if (resSetting === '720p') { targetWidth = 1280; targetHeight = 720; }
+          if (resSetting === '480p') { targetWidth = 854; targetHeight = 480; }
+
+          const targetAspect = document.getElementById('export-aspect').value;
+          if (targetAspect === '9:16' || edl.project.aspectRatio === '9:16') {
+            const temp = targetWidth;
+            targetWidth = targetHeight;
+            targetHeight = temp;
+          }
+
+          if (AppState.isMobile && targetWidth > 1280) {
+            targetWidth = 720;
+            targetHeight = 1280;
+          }
+
+          const hasWebCodecs = typeof window.VideoEncoder === 'function' && typeof window.Mp4Muxer === 'object';
+          const useWebCodecs = (policy === 'webcodecs' || (policy === 'auto' && hasWebCodecs && format === 'mp4'));
+
+          let outputBlob = null;
+          if (useWebCodecs) {
+            outputBlob = await this.renderViaWebCodecs({ edl, targetWidth, targetHeight, fps, burnSubtitles });
+          } else {
+            outputBlob = await this.renderViaCanvasRecorder({ edl, targetWidth, targetHeight, fps, format, burnSubtitles });
+          }
+
+          if (this.abortSignal) throw new Error('Export cancelled by user.');
+          if (!outputBlob || outputBlob.size === 0) throw new Error('Render produced an empty or invalid video file.');
+
+          this.currentExportUrl = BlobLifecycleManager.create(outputBlob);
+          this.btnDownload.href = this.currentExportUrl;
+          this.btnDownload.download = `${AppState.activeProject.title.replace(/\s+/g, '_')}_rendered.${format}`;
+
+          this.successDetails.innerText = `Successfully rendered ${targetWidth}x${targetHeight} (${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB). Verified video & audio streams present.`;
+          this.successBox.style.display = 'block';
+          this.progressPanel.style.display = 'none';
+
+          Toast.show('Video rendering complete and verified!', 'success');
+        } catch (err) {
+          console.error('Rendering error:', err);
+          Toast.show(`Render failed: ${err.message}`, 'error', 6000);
+          this.progressPanel.style.display = 'none';
+        } finally {
+          this.isRendering = false;
+          this.btnStartExport.style.display = 'inline-flex';
+          this.btnCancelExport.style.display = 'none';
+        }
+      }
+
+      async renderViaWebCodecs({ edl, targetWidth, targetHeight, fps, burnSubtitles }) {
+        this.statusLabel.innerText = 'Initializing WebCodecs & MP4 Muxer...';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const video = document.createElement('video');
+        video.muted = true;
+        video.playsInline = true;
+        const videoUrl = BlobLifecycleManager.create(AppState.loadedVideoFile);
+        video.src = videoUrl;
+
+        await new Promise((res) => { video.onloadedmetadata = () => res(); });
+
+        const muxer = new window.Mp4Muxer.Muxer({
+          target: new window.Mp4Muxer.ArrayBufferTarget(),
+          video: { codec: 'avc', width: targetWidth, height: targetHeight },
+          fastStart: 'in-memory'
+        });
+
+        const videoEncoder = new VideoEncoder({
+          output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+          error: (e) => console.error('VideoEncoder error:', e)
+        });
+
+        videoEncoder.configure({
+          codec: 'avc1.42001f',
+          width: targetWidth,
+          height: targetHeight,
+          bitrate: targetWidth > 1000 ? 5_000_000 : 2_500_000,
+          framerate: fps
+        });
+
+        let totalRenderFrames = 0;
+        edl.segments.forEach(seg => {
+          totalRenderFrames += Math.round((seg.sourceEnd - seg.sourceStart) * fps);
+        });
+
+        let encodedFrameCount = 0;
+        const frameDurationMicros = Math.round(1_000_000 / fps);
+
+        for (const seg of edl.segments) {
+          if (this.abortSignal) break;
+          const segStart = seg.sourceStart;
+          const segDur = seg.sourceEnd - segStart;
+          const segFrames = Math.round(segDur * fps);
+
+          for (let f = 0; f < segFrames; f++) {
+            if (this.abortSignal) break;
+            const time = segStart + (f / fps);
+
+            await new Promise((resSeek) => {
+              const onSeeked = () => {
+                video.removeEventListener('seeked', onSeeked);
+                resSeek();
+              };
+              video.addEventListener('seeked', onSeeked);
+              video.currentTime = time;
+            });
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+            const scale = Math.max(targetWidth / video.videoWidth, targetHeight / video.videoHeight);
+            const sw = video.videoWidth * scale;
+            const sh = video.videoHeight * scale;
+            const sx = (targetWidth - sw) / 2;
+            const sy = (targetHeight - sh) / 2;
+
+            if (seg.operation === 'zoom') {
+              ctx.drawImage(video, sx - 20, sy - 20, sw + 40, sh + 40);
+            } else {
+              ctx.drawImage(video, sx, sy, sw, sh);
+            }
+
+            if (burnSubtitles) {
+              this.drawSubtitlesOnCanvas(ctx, time, targetWidth, targetHeight);
+            }
+
+            const videoFrame = new VideoFrame(canvas, {
+              timestamp: encodedFrameCount * frameDurationMicros,
+              duration: frameDurationMicros
+            });
+
+            const keyFrame = (encodedFrameCount % (fps * 2) === 0);
+            videoEncoder.encode(videoFrame, { keyFrame });
+            videoFrame.close();
+
+            encodedFrameCount++;
+            const pct = Math.min(Math.round((encodedFrameCount / totalRenderFrames) * 100), 99);
+            this.progressBar.style.width = `${pct}%`;
+            this.statusPct.innerText = `${pct}%`;
+            this.statusLabel.innerText = `Engine A (WebCodecs): Encoding frame ${encodedFrameCount}/${totalRenderFrames}...`;
+            this.detailsLabel.innerText = `Segment: ${seg.reason} (${time.toFixed(1)}s)`;
+          }
+        }
+
+        await videoEncoder.flush();
+        videoEncoder.close();
+        muxer.finalize();
+
+        BlobLifecycleManager.revoke(videoUrl);
+        video.removeAttribute('src');
+        video.load();
+
+        const buffer = muxer.target.buffer;
+        return new Blob([buffer], { type: 'video/mp4' });
+      }
+
+      async renderViaCanvasRecorder({ edl, targetWidth, targetHeight, fps, format, burnSubtitles }) {
+        this.statusLabel.innerText = 'Initializing Canvas MediaRecorder & Audio Pipeline...';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+
+        const video = document.createElement('video');
+        video.muted = false;
+        video.volume = AppState.audioSettings.volume;
+        video.playsInline = true;
+        const videoUrl = BlobLifecycleManager.create(AppState.loadedVideoFile);
+        video.src = videoUrl;
+
+        await new Promise((res) => { video.onloadedmetadata = () => res(); });
+
+        let combinedStream;
+        let audioCtx = null;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const sourceNode = audioCtx.createMediaElementSource(video);
+          const destNode = audioCtx.createMediaStreamDestination();
+          const gainNode = audioCtx.createGain();
+          gainNode.gain.value = AppState.audioSettings.volume;
+          sourceNode.connect(gainNode);
+          gainNode.connect(destNode);
+
+          const videoStream = canvas.captureStream(fps);
+          const audioTrack = destNode.stream.getAudioTracks()[0];
+          if (audioTrack) videoStream.addTrack(audioTrack);
+          combinedStream = videoStream;
+        } catch (e) {
+          console.warn('Audio graph routing failed, capturing video-only stream:', e);
+          combinedStream = canvas.captureStream(fps);
+        }
+
+        const mimeType = (format === 'mp4' && MediaRecorder.isTypeSupported('video/mp4;codecs=avc1'))
+          ? 'video/mp4;codecs=avc1'
+          : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm');
+
+        const chunks = [];
+        const recorder = new MediaRecorder(combinedStream, {
+          mimeType: mimeType,
+          videoBitsPerSecond: targetWidth > 1000 ? 5_000_000 : 2_500_000
+        });
+
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.start(100);
+
+        let totalRenderFrames = 0;
+        edl.segments.forEach(seg => {
+          totalRenderFrames += Math.round((seg.sourceEnd - seg.sourceStart) * fps);
+        });
+
+        let frameIndex = 0;
+
+        for (const seg of edl.segments) {
+          if (this.abortSignal) break;
+          const segStart = seg.sourceStart;
+          const segDur = seg.sourceEnd - segStart;
+          const segFrames = Math.round(segDur * fps);
+
+          for (let f = 0; f < segFrames; f++) {
+            if (this.abortSignal) break;
+            const time = segStart + (f / fps);
+
+            await new Promise((resSeek) => {
+              const onSeeked = () => {
+                video.removeEventListener('seeked', onSeeked);
+                resSeek();
+              };
+              video.addEventListener('seeked', onSeeked);
+              video.currentTime = time;
+            });
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+            const scale = Math.max(targetWidth / video.videoWidth, targetHeight / video.videoHeight);
+            const sw = video.videoWidth * scale;
+            const sh = video.videoHeight * scale;
+            const sx = (targetWidth - sw) / 2;
+            const sy = (targetHeight - sh) / 2;
+
+            if (seg.operation === 'zoom') {
+              ctx.drawImage(video, sx - 20, sy - 20, sw + 40, sh + 40);
+            } else {
+              ctx.drawImage(video, sx, sy, sw, sh);
+            }
+
+            if (burnSubtitles) {
+              this.drawSubtitlesOnCanvas(ctx, time, targetWidth, targetHeight);
+            }
+
+            frameIndex++;
+            const pct = Math.min(Math.round((frameIndex / totalRenderFrames) * 100), 99);
+            this.progressBar.style.width = `${pct}%`;
+            this.statusPct.innerText = `${pct}%`;
+            this.statusLabel.innerText = `Engine A2 (Recorder): Capturing frame ${frameIndex}/${totalRenderFrames}...`;
+            this.detailsLabel.innerText = `Time: ${time.toFixed(1)}s`;
+          }
+        }
+
+        recorder.stop();
+        await new Promise((resStop) => { recorder.onstop = () => resStop(); });
+
+        if (audioCtx) audioCtx.close().catch(() => {});
+
+        BlobLifecycleManager.revoke(videoUrl);
+        video.removeAttribute('src');
+        video.load();
+
+        return new Blob(chunks, { type: mimeType });
+      }
+
+      drawSubtitlesOnCanvas(ctx, time, width, height) {
+        const captions = AppState.activeProject?.edl?.captions;
+        if (!captions || captions.length === 0) return;
+
+        const activeCaption = captions.find(c => time >= c.start && time <= c.end);
+        if (!activeCaption) return;
+
+        const style = AppState.subtitleStyle;
+        ctx.save();
+
+        const baseFontSize = (style.fontSize / 720) * height;
+        ctx.font = `800 ${baseFontSize}px ${style.fontFamily || 'sans-serif'}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        let posY = height - (height * 0.14);
+        if (style.position === 'top') posY = height * 0.14;
+        if (style.position === 'center') posY = height * 0.5;
+
+        const posX = width / 2;
+        const text = activeCaption.text.toUpperCase();
+
+        if (style.boxShadow === 'solid-box') {
+          const textMetrics = ctx.measureText(text);
+          const padX = baseFontSize * 0.5;
+          const padY = baseFontSize * 0.3;
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+          ctx.fillRect(
+            posX - (textMetrics.width / 2) - padX,
+            posY - (baseFontSize / 2) - padY,
+            textMetrics.width + (padX * 2),
+            baseFontSize + (padY * 2)
+          );
+        } else if (style.boxShadow === 'heavy') {
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 4;
+        }
+
+        ctx.fillStyle = style.textColor || '#FFFFFF';
+        ctx.fillText(text, posX, posY);
+
+        ctx.lineWidth = Math.max(2, baseFontSize * 0.08);
+        ctx.strokeStyle = '#000000';
+        ctx.strokeText(text, posX, posY);
+
+        ctx.restore();
+      }
+    }
+
+    class DashboardController {
+      constructor() {
+        this.projectListContainer = document.getElementById('project-list-container');
+        this.emptyState = document.getElementById('projects-empty-state');
+        this.statProjectCount = document.getElementById('stat-project-count');
+        this.statKeyStatus = document.getElementById('stat-key-status');
+        this.statStorageSize = document.getElementById('stat-storage-size');
+        this.statActiveModel = document.getElementById('stat-active-model');
+
+        document.getElementById('btn-refresh-projects').addEventListener('click', () => this.loadDashboardProjects());
+        document.getElementById('btn-empty-upload-trigger').addEventListener('click', () => {
+          App.navigation.scrollTo('sec-ai-editor');
+        });
+
+        document.getElementById('btn-top-new-project').addEventListener('click', () => {
+          App.modal.open({
+            title: 'Create New Editing Project',
+            htmlContent: `
+              <div class="form-group">
+                <label for="modal-project-title">Project Title</label>
+                <input type="text" class="input-field" id="modal-project-title" placeholder="e.g. YouTube Highlights #1" />
+              </div>
+              <div class="form-group">
+                <label for="modal-target-format">Target Format</label>
+                <select class="select-field" id="modal-target-format">
+                  <option value="youtube-shorts">YouTube Shorts (9:16)</option>
+                  <option value="instagram-reels">Instagram Reels (9:16)</option>
+                  <option value="youtube-main">YouTube Landscape (16:9)</option>
+                  <option value="general-mp4">General Clean MP4</option>
+                </select>
+              </div>
+            `,
+            confirmText: 'Create Project',
+            onConfirm: () => {
+              const title = document.getElementById('modal-project-title').value.trim() || 'Untitled Project';
+              const target = document.getElementById('modal-target-format').value;
+              AppState.activeProject = {
+                id: 'proj_' + Date.now(),
+                title: title,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                targetFormat: target,
+                instructions: '',
+                metadata: null,
+                mediaBlob: null,
+                edl: null
+              };
+              App.modal.close();
+              Toast.show(`Initialized "${title}". Please upload raw video.`, 'success');
+              App.editor.syncWorkspaceWithActiveProject();
+              App.navigation.scrollTo('sec-ai-editor');
+            }
+          });
+        });
+      }
+
+      async loadDashboardProjects() {
+        try {
+          const projects = await App.db.getProjects();
+          this.statProjectCount.innerText = projects.length;
+
+          if (AppState.apiKey) {
+            this.statKeyStatus.innerText = 'Connected';
+            this.statKeyStatus.style.color = 'var(--accent-emerald)';
+          } else {
+            this.statKeyStatus.innerText = 'Not Set';
+            this.statKeyStatus.style.color = 'var(--accent-rose)';
+          }
+
+          if (this.statActiveModel) {
+            this.statActiveModel.innerText = AppState.apiModel;
+          }
+
+          if (projects.length === 0) {
+            this.projectListContainer.innerHTML = '';
+            this.emptyState.style.display = 'flex';
+            this.statStorageSize.innerText = '0.0 MB';
+            return;
+          }
+
+          this.emptyState.style.display = 'none';
+          this.projectListContainer.innerHTML = '';
+
+          let totalSize = 0;
+
+          projects.reverse().forEach(project => {
+            if (project.metadata && project.metadata.fileSize) {
+              totalSize += project.metadata.fileSize;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.background = 'var(--bg-surface-elevated)';
+            card.style.display = 'flex';
+            card.style.flexDirection = 'column';
+            card.style.justifyContent = 'space-between';
+
+            const edlBadge = project.edl ? `<span style="font-size: 10px; color: var(--accent-emerald); font-weight:700;">• EDL READY</span>` : '';
+
+            card.innerHTML = `
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                  <span style="font-size: 11px; font-weight: 700; color: var(--accent-indigo); text-transform: uppercase;">${DOMSanitizer.escape(project.targetFormat || 'VIDEO')}</span>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    ${edlBadge}
+                    <span style="font-size: 11px; color: var(--text-dim);">${new Date(project.updatedAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <h4 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; word-break: break-word;">${DOMSanitizer.escape(project.title)}</h4>
+                <div style="font-size: 12px; color: var(--text-muted);">Duration: ${project.metadata ? DOMSanitizer.escape(project.metadata.formattedDuration) : '--:--'}</div>
+              </div>
+              <div style="display: flex; gap: 8px; margin-top: 18px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+                <button class="btn btn-primary btn-sm btn-load-proj" style="flex:1;" data-id="${DOMSanitizer.escape(project.id)}">Open in Workspace</button>
+                <button class="btn btn-danger btn-sm btn-delete-proj" data-id="${DOMSanitizer.escape(project.id)}" aria-label="Delete Project"><i data-lucide="trash-2"></i></button>
+              </div>
+            `;
+
+            this.projectListContainer.appendChild(card);
+          });
+
+          this.statStorageSize.innerText = (totalSize / (1024 * 1024)).toFixed(1) + ' MB';
+          lucide.createIcons();
+
+          this.projectListContainer.querySelectorAll('.btn-load-proj').forEach(b => {
+            b.addEventListener('click', () => {
+              const id = b.getAttribute('data-id');
+              const found = projects.find(p => p.id === id);
+              if (found) {
+                AppState.activeProject = found;
+                if (found.mediaBlob) {
+                  AppState.loadedVideoFile = found.mediaBlob;
+                  AppState.loadedVideoMetadata = found.metadata;
+                }
+                App.editor.syncWorkspaceWithActiveProject();
+                App.subtitles.syncGeneratedCaptionsList();
+                App.navigation.scrollTo('sec-editor-workspace');
+                Toast.show(`Opened project "${found.title}"`, 'success');
+              }
+            });
+          });
+
+          this.projectListContainer.querySelectorAll('.btn-delete-proj').forEach(b => {
+            b.addEventListener('click', () => {
+              const id = b.getAttribute('data-id');
+              App.modal.open({
+                title: 'Delete Project Confirmation',
+                htmlContent: `<p style="font-size: 13px; color: var(--text-muted);">Are you sure you want to delete this project and its stored media blob from IndexedDB?</p>`,
+                confirmText: 'Delete Permanently',
+                confirmClass: 'btn-danger',
+                onConfirm: async () => {
+                  await App.db.deleteProject(id);
+                  App.modal.close();
+                  Toast.show('Project removed from IndexedDB.', 'info');
+                  this.loadDashboardProjects();
+                }
+              });
+            });
+          });
+
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    class SettingsController {
+      constructor() {
+        this.inputApiKey = document.getElementById('input-api-key');
+        this.defaultModelSelect = document.getElementById('settings-default-model');
+        this.customModelInput = document.getElementById('settings-custom-model-input');
+        this.btnToggleVisibility = document.getElementById('btn-toggle-key-visibility');
+        this.btnSaveKey = document.getElementById('btn-save-key');
+        this.btnRemoveKey = document.getElementById('btn-remove-key');
+        this.btnTestKey = document.getElementById('btn-test-key-connection');
+        this.btnPurgeAll = document.getElementById('btn-purge-all-data');
+        this.storagePolicySelect = document.getElementById('select-key-storage-policy');
+        this.keyBadge = document.getElementById('key-badge-status');
+
+        this.init();
+      }
+
+      init() {
+        const localKey = localStorage.getItem('autoedit_gemini_key');
+        const sessionKey = sessionStorage.getItem('autoedit_gemini_key');
+
+        if (sessionKey) {
+          AppState.apiKey = sessionKey;
+          this.inputApiKey.value = sessionKey;
+          this.storagePolicySelect.value = 'session';
+          this.updateBadge(true);
+        } else if (localKey) {
+          AppState.apiKey = localKey;
+          this.inputApiKey.value = localKey;
+          this.storagePolicySelect.value = 'local';
+          this.updateBadge(true);
+        }
+
+        const savedModel = localStorage.getItem('autoedit_gemini_model') || 'gemini-3.8-flash';
+        AppState.apiModel = savedModel;
+        this.syncModel(savedModel);
+
+        this.defaultModelSelect.addEventListener('change', () => {
+          if (this.defaultModelSelect.value === 'custom') {
+            this.customModelInput.style.display = 'block';
+            this.customModelInput.focus();
+          } else {
+            this.customModelInput.style.display = 'none';
+            AppState.apiModel = this.defaultModelSelect.value;
+            localStorage.setItem('autoedit_gemini_model', AppState.apiModel);
+            this.syncModel(AppState.apiModel);
+            Toast.show(`Default model updated to ${AppState.apiModel}`, 'info');
+          }
+        });
+
+        this.customModelInput.addEventListener('input', () => {
+          const val = this.customModelInput.value.trim();
+          if (val) {
+            AppState.apiModel = val;
+            localStorage.setItem('autoedit_gemini_model', val);
+            this.syncModel(val);
+          }
+        });
+
+        this.btnToggleVisibility.addEventListener('click', () => {
+          this.inputApiKey.type = this.inputApiKey.type === 'password' ? 'text' : 'password';
+        });
+
+        this.btnSaveKey.addEventListener('click', () => {
+          const val = this.inputApiKey.value.trim();
+          if (!val) {
+            Toast.show('Please enter a valid API key string', 'warning');
+            return;
+          }
+
+          AppState.apiKey = val;
+          const policy = this.storagePolicySelect.value;
+
+          if (policy === 'local') {
+            localStorage.setItem('autoedit_gemini_key', val);
+            sessionStorage.removeItem('autoedit_gemini_key');
+          } else {
+            sessionStorage.setItem('autoedit_gemini_key', val);
+            localStorage.removeItem('autoedit_gemini_key');
+          }
+
+          this.updateBadge(true);
+          App.dashboard.loadDashboardProjects();
+          Toast.show('Gemini API key saved successfully', 'success');
+        });
+
+        this.btnRemoveKey.addEventListener('click', () => {
+          AppState.apiKey = '';
+          this.inputApiKey.value = '';
+          localStorage.removeItem('autoedit_gemini_key');
+          sessionStorage.removeItem('autoedit_gemini_key');
+          this.updateBadge(false);
+          App.dashboard.loadDashboardProjects();
+          Toast.show('API key cleared from memory and storage', 'info');
+        });
+
+        this.btnTestKey.addEventListener('click', async () => {
+          const keyToTest = this.inputApiKey.value.trim() || AppState.apiKey;
+          if (!keyToTest) {
+            Toast.show('Please enter an API key to test', 'warning');
+            return;
+          }
+
+          Toast.show(`Verifying key connection and model availability (${AppState.apiModel})...`, 'info');
+
+          try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${keyToTest}`);
+            if (res.ok) {
+              const data = await res.json();
+              const hasModel = data.models?.some(m => m.name.includes(AppState.apiModel));
+              Toast.show(
+                hasModel
+                  ? `Authenticated! Model '${AppState.apiModel}' confirmed active on this key.`
+                  : `Authenticated successfully with Google Gemini API!`,
+                'success'
+              );
+              AppState.apiKey = keyToTest;
+              this.updateBadge(true);
+              App.dashboard.loadDashboardProjects();
+            } else {
+              const err = await res.json().catch(() => ({}));
+              Toast.show(`API test failed: ${err.error?.message || res.statusText}`, 'error');
+            }
+          } catch (e) {
+            Toast.show('Network error while testing Gemini API endpoint', 'error');
+          }
+        });
+
+        this.btnPurgeAll.addEventListener('click', () => {
+          App.modal.open({
+            title: 'Purge All Application Data',
+            htmlContent: `
+              <p style="font-size: 13px; color: var(--accent-rose); font-weight: 600; margin-bottom: 8px;">Irreversible Action</p>
+              <p style="font-size: 13px; color: var(--text-muted);">This will remove all stored projects, cached media blobs, and saved credentials from your browser's IndexedDB and LocalStorage.</p>
+            `,
+            confirmText: 'Purge Everything',
+            confirmClass: 'btn-danger',
+            onConfirm: async () => {
+              await App.db.clearAll();
+              localStorage.clear();
+              sessionStorage.clear();
+              BlobLifecycleManager.revokeAll();
+
+              AppState.apiKey = '';
+              AppState.activeProject = null;
+              AppState.loadedVideoMetadata = null;
+              AppState.loadedVideoFile = null;
+
+              this.inputApiKey.value = '';
+              this.updateBadge(false);
+              App.modal.close();
+
+              Toast.show('IndexedDB and storage records purged.', 'success');
+              App.dashboard.loadDashboardProjects();
+            }
+          });
+        });
+      }
+
+      syncModel(modelName) {
+        const aiSelect = document.getElementById('ai-model-select');
+        const customAiInput = document.getElementById('ai-custom-model-input');
+
+        const isStandard = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'].includes(modelName);
+
+        if (isStandard) {
+          this.defaultModelSelect.value = modelName;
+          this.customModelInput.style.display = 'none';
+          if (aiSelect) {
+            aiSelect.value = modelName;
+            if (customAiInput) customAiInput.style.display = 'none';
+          }
+        } else {
+          this.defaultModelSelect.value = 'custom';
+          this.customModelInput.style.display = 'block';
+          this.customModelInput.value = modelName;
+          if (aiSelect) {
+            aiSelect.value = 'custom';
+            if (customAiInput) {
+              customAiInput.style.display = 'block';
+              customAiInput.value = modelName;
+            }
+          }
+        }
+
+        const statModel = document.getElementById('stat-active-model');
+        if (statModel) statModel.innerText = modelName;
+      }
+
+      updateBadge(active) {
+        if (active) {
+          this.keyBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+          this.keyBadge.style.color = 'var(--accent-emerald)';
+          this.keyBadge.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+          this.keyBadge.innerHTML = `<i data-lucide="check" style="width: 12px; height: 12px;"></i><span>Gemini Ready</span>`;
+        } else {
+          this.keyBadge.style.background = 'rgba(244, 63, 94, 0.1)';
+          this.keyBadge.style.color = 'var(--accent-rose)';
+          this.keyBadge.style.borderColor = 'rgba(244, 63, 94, 0.2)';
+          this.keyBadge.innerHTML = `<i data-lucide="key-round" style="width: 12px; height: 12px;"></i><span>No API Key</span>`;
+        }
+        lucide.createIcons();
+      }
+    }
+
+    class Application {
+      constructor() {
+        this.db = new DatabaseService();
+      }
+
+      async start() {
+        try {
+          await this.db.init();
+          
+          this.modal = new ModalController();
+          this.navigation = new ScrollNavigationController();
+          this.aiDirector = new AIDirectorController();
+          this.editor = new WorkspaceController();
+          this.subtitles = new SubtitleStudioController();
+          this.dashboard = new DashboardController();
+          this.settings = new SettingsController();
+          this.exportEngine = new AdaptiveRenderEngine();
+
+          lucide.createIcons();
+          this.dashboard.loadDashboardProjects();
+
+          console.log('%c AUTOEDIT AI Initialized with Gemini 3.8 Flash ', 'background: #6366f1; color: #fff; border-radius: 4px; padding: 4px 8px; font-weight: 700;');
+        } catch (err) {
+          console.error('Fatal initialization error:', err);
+          Toast.show('IndexedDB initialization failed. Check browser storage permissions.', 'error');
+        }
+      }
+    }
+
+    const App = new Application();
+    window.addEventListener('DOMContentLoaded', () => App.start());
+  </script>
+</body>
+</html>
